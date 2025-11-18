@@ -106,10 +106,18 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
                   </div>
                 </TableCell>
                 <TableCell>
-                  {shop.address ? (
+                  {(shop.street_address || shop.city || shop.state) ? (
                     <div className="flex items-start gap-1 text-sm text-muted-foreground">
                       <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                      <span className="line-clamp-2">{shop.address}</span>
+                      <div className="line-clamp-2">
+                        {shop.street_address && <div>{shop.street_address}</div>}
+                        {shop.street_address_line_2 && <div>{shop.street_address_line_2}</div>}
+                        {(shop.city || shop.state || shop.zip_code) && (
+                          <div>
+                            {[shop.city, shop.state, shop.zip_code].filter(Boolean).join(", ")}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     "-"

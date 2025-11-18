@@ -2,16 +2,18 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShopTable } from "@/components/shops/ShopTable";
 import { ShopForm } from "@/components/shops/ShopForm";
+import { BulkUploadDialog } from "@/components/shops/BulkUploadDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 
 const Shops = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [editingShop, setEditingShop] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { user } = useAuth();
@@ -75,10 +77,16 @@ const Shops = () => {
             <h2 className="text-3xl font-bold tracking-tight">Shops</h2>
             <p className="text-muted-foreground">Manage customer shops</p>
           </div>
-          <Button onClick={handleAddShop}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Shop
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Bulk Upload
+            </Button>
+            <Button onClick={handleAddShop}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Shop
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
@@ -117,6 +125,12 @@ const Shops = () => {
             />
           </DialogContent>
         </Dialog>
+
+        <BulkUploadDialog
+          open={isBulkUploadOpen}
+          onOpenChange={setIsBulkUploadOpen}
+          onSuccess={refetch}
+        />
       </div>
     </DashboardLayout>
   );
