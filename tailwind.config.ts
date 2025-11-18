@@ -57,6 +57,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        chart: {
+          "1": "hsl(6 61% 59%)",
+          "2": "hsl(6 71% 69%)",
+          "3": "hsl(0 0% 20%)",
+          "4": "hsl(6 51% 49%)",
+          "5": "hsl(6 81% 79%)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

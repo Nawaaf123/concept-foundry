@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import mrFogLogo from "@/assets/mr-fog-logo.jpg";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -63,10 +64,13 @@ const Auth = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>{isLogin ? "Sign In" : "Sign Up"}</CardTitle>
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <img src={mrFogLogo} alt="MR FOG" className="h-12 object-contain" />
+          </div>
+          <CardTitle className="text-2xl">{isLogin ? "Sign In" : "Sign Up"}</CardTitle>
           <CardDescription>
-            {isLogin ? "Welcome back! Sign in to your account." : "Create a new account to get started."}
+            {isLogin ? "Welcome back to MR FOG® Sales Manager" : "Create your MR FOG® account"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -115,7 +119,7 @@ const Auth = () => {
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <Button
               variant="link"
-              className="p-0 h-auto font-normal"
+              className="p-0 h-auto font-normal text-primary"
               onClick={() => setIsLogin(!isLogin)}
             >
               {isLogin ? "Sign Up" : "Sign In"}
