@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import ProductAnalytics from "./pages/ProductAnalytics";
+import Shops from "./pages/Shops";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ProductAnalytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shops"
+              element={
+                <ProtectedRoute>
+                  <Shops />
                 </ProtectedRoute>
               }
             />
