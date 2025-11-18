@@ -35,6 +35,21 @@ const Products = () => {
 
   const isAdmin = userRole === "admin";
 
+  const { data: categories } = useQuery({
+    queryKey: ["productCategories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("category")
+        .order("category");
+      
+      if (error) throw error;
+      
+      const uniqueCategories = Array.from(new Set(data.map(p => p.category).filter(Boolean)));
+      return uniqueCategories;
+    },
+  });
+
   const { data: products, isLoading, refetch } = useQuery({
     queryKey: ["products", categoryFilter],
     queryFn: async () => {
@@ -44,7 +59,7 @@ const Products = () => {
         .order("created_at", { ascending: false });
 
       if (categoryFilter !== "all") {
-        query = query.eq("category", categoryFilter as "electronics" | "clothing" | "food" | "furniture" | "other");
+        query = query.eq("category", categoryFilter);
       }
 
       const { data, error } = await query;
@@ -108,11 +123,11 @@ const Products = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="electronics">Electronics</SelectItem>
-              <SelectItem value="clothing">Clothing</SelectItem>
-              <SelectItem value="food">Food</SelectItem>
-              <SelectItem value="furniture">Furniture</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              {categories?.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
