@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 const productSchema = z.object({
   name: z.string().trim().min(1, "Product name is required").max(100, "Name must be less than 100 characters"),
   price: z.coerce.number().min(0.01, "Price must be greater than 0"),
-  category: z.enum(["electronics", "clothing", "food", "furniture", "other"]),
+  category: z.string().trim().min(1, "Category is required").max(50, "Category must be less than 50 characters"),
   image_url: z.string().url("Invalid URL").optional().or(z.literal("")),
 });
 
@@ -45,7 +45,7 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
     defaultValues: {
       name: product?.name || "",
       price: product?.price || 0,
-      category: product?.category || "other",
+      category: product?.category || "",
       image_url: product?.image_url || "",
     },
   });
@@ -132,20 +132,9 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="electronics">Electronics</SelectItem>
-                  <SelectItem value="clothing">Clothing</SelectItem>
-                  <SelectItem value="food">Food</SelectItem>
-                  <SelectItem value="furniture">Furniture</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Input placeholder="Enter category (e.g., Electronics, Clothing)" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

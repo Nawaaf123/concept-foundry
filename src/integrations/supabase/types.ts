@@ -108,7 +108,7 @@ export type Database = {
       }
       products: {
         Row: {
-          category: Database["public"]["Enums"]["product_category"]
+          category: string
           created_at: string
           id: string
           image_url: string | null
@@ -118,7 +118,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          category?: Database["public"]["Enums"]["product_category"]
+          category?: string
           created_at?: string
           id?: string
           image_url?: string | null
@@ -128,7 +128,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["product_category"]
+          category?: string
           created_at?: string
           id?: string
           image_url?: string | null
@@ -237,12 +237,6 @@ export type Database = {
     Enums: {
       app_role: "admin" | "sales"
       payment_status: "paid" | "partial" | "unpaid"
-      product_category:
-        | "electronics"
-        | "clothing"
-        | "food"
-        | "furniture"
-        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -372,13 +366,6 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "sales"],
       payment_status: ["paid", "partial", "unpaid"],
-      product_category: [
-        "electronics",
-        "clothing",
-        "food",
-        "furniture",
-        "other",
-      ],
     },
   },
 } as const

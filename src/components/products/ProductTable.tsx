@@ -84,14 +84,21 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
   });
 
   const getCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-      electronics: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-      clothing: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-      food: "bg-green-500/10 text-green-500 border-green-500/20",
-      furniture: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-      other: "bg-gray-500/10 text-gray-500 border-gray-500/20",
-    };
-    return colors[category] || colors.other;
+    const hash = category.split('').reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc);
+    }, 0);
+    
+    const colors = [
+      "bg-blue-500/10 text-blue-500 border-blue-500/20",
+      "bg-purple-500/10 text-purple-500 border-purple-500/20",
+      "bg-green-500/10 text-green-500 border-green-500/20",
+      "bg-amber-500/10 text-amber-500 border-amber-500/20",
+      "bg-pink-500/10 text-pink-500 border-pink-500/20",
+      "bg-cyan-500/10 text-cyan-500 border-cyan-500/20",
+      "bg-orange-500/10 text-orange-500 border-orange-500/20",
+    ];
+    
+    return colors[Math.abs(hash) % colors.length];
   };
 
   if (products.length === 0) {
