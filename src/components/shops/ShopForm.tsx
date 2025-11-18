@@ -22,7 +22,11 @@ const shopSchema = z.object({
   owner_name: z.string().trim().max(100, "Owner name must be less than 100 characters").optional(),
   phone: z.string().trim().max(20, "Phone must be less than 20 characters").optional(),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional().or(z.literal("")),
-  address: z.string().trim().max(500, "Address must be less than 500 characters").optional(),
+  street_address: z.string().trim().max(255, "Street address must be less than 255 characters").optional(),
+  street_address_line_2: z.string().trim().max(255, "Street address line 2 must be less than 255 characters").optional(),
+  city: z.string().trim().max(100, "City must be less than 100 characters").optional(),
+  state: z.string().trim().max(100, "State must be less than 100 characters").optional(),
+  zip_code: z.string().trim().max(20, "Zip code must be less than 20 characters").optional(),
 });
 
 type ShopFormValues = z.infer<typeof shopSchema>;
@@ -44,7 +48,11 @@ export const ShopForm = ({ shop, onSuccess, onCancel }: ShopFormProps) => {
       owner_name: shop?.owner_name || "",
       phone: shop?.phone || "",
       email: shop?.email || "",
-      address: shop?.address || "",
+      street_address: shop?.street_address || "",
+      street_address_line_2: shop?.street_address_line_2 || "",
+      city: shop?.city || "",
+      state: shop?.state || "",
+      zip_code: shop?.zip_code || "",
     },
   });
 
@@ -55,7 +63,11 @@ export const ShopForm = ({ shop, onSuccess, onCancel }: ShopFormProps) => {
         owner_name: values.owner_name || null,
         phone: values.phone || null,
         email: values.email || null,
-        address: values.address || null,
+        street_address: values.street_address || null,
+        street_address_line_2: values.street_address_line_2 || null,
+        city: values.city || null,
+        state: values.state || null,
+        zip_code: values.zip_code || null,
       };
 
       if (shop) {
@@ -155,22 +167,75 @@ export const ShopForm = ({ shop, onSuccess, onCancel }: ShopFormProps) => {
 
         <FormField
           control={form.control}
-          name="address"
+          name="street_address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Address</FormLabel>
+              <FormLabel>Street Address</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Enter shop address"
-                  className="resize-none"
-                  rows={3}
-                  {...field}
-                />
+                <Input placeholder="1234 Main St" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="street_address_line_2"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Street Address Line 2</FormLabel>
+              <FormControl>
+                <Input placeholder="Suite 100" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City</FormLabel>
+                <FormControl>
+                  <Input placeholder="Madison" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="state"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>State</FormLabel>
+                <FormControl>
+                  <Input placeholder="Wisconsin" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="zip_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Zip Code</FormLabel>
+                <FormControl>
+                  <Input placeholder="53590" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>

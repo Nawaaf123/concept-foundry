@@ -171,7 +171,7 @@ export type Database = {
       }
       shops: {
         Row: {
-          address: string | null
+          city: string | null
           created_at: string
           created_by: string
           email: string | null
@@ -179,10 +179,14 @@ export type Database = {
           name: string
           owner_name: string | null
           phone: string | null
+          state: string | null
+          street_address: string | null
+          street_address_line_2: string | null
           updated_at: string
+          zip_code: string | null
         }
         Insert: {
-          address?: string | null
+          city?: string | null
           created_at?: string
           created_by: string
           email?: string | null
@@ -190,10 +194,14 @@ export type Database = {
           name: string
           owner_name?: string | null
           phone?: string | null
+          state?: string | null
+          street_address?: string | null
+          street_address_line_2?: string | null
           updated_at?: string
+          zip_code?: string | null
         }
         Update: {
-          address?: string | null
+          city?: string | null
           created_at?: string
           created_by?: string
           email?: string | null
@@ -201,7 +209,11 @@ export type Database = {
           name?: string
           owner_name?: string | null
           phone?: string | null
+          state?: string | null
+          street_address?: string | null
+          street_address_line_2?: string | null
           updated_at?: string
+          zip_code?: string | null
         }
         Relationships: []
       }
