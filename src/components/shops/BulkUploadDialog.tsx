@@ -69,7 +69,6 @@ export const BulkUploadDialog = ({ open, onOpenChange, onSuccess }: BulkUploadDi
           title: "Upload Complete",
           description: `Successfully added ${successCount} shop${successCount !== 1 ? 's' : ''}`,
         });
-        onSuccess();
       }
 
       if (failedCount > 0) {
@@ -79,6 +78,13 @@ export const BulkUploadDialog = ({ open, onOpenChange, onSuccess }: BulkUploadDi
           variant: "destructive",
         });
       }
+
+      // Call onSuccess and close dialog after a brief delay to show results
+      setTimeout(() => {
+        onSuccess();
+        onOpenChange(false);
+        setUploadStatus(null);
+      }, 2000);
     } catch (error: any) {
       console.error("Error processing file:", error);
       toast({
