@@ -106,6 +106,50 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          check_number: string | null
+          created_at: string
+          created_by: string
+          id: string
+          invoice_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+        }
+        Insert: {
+          amount: number
+          check_number?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          invoice_id: string
+          notes?: string | null
+          payment_date?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+        }
+        Update: {
+          amount?: number
+          check_number?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string
@@ -258,6 +302,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "sales"
+      payment_method: "cash" | "check"
       payment_status: "paid" | "partial" | "unpaid"
     }
     CompositeTypes: {
@@ -387,6 +432,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "sales"],
+      payment_method: ["cash", "check"],
       payment_status: ["paid", "partial", "unpaid"],
     },
   },

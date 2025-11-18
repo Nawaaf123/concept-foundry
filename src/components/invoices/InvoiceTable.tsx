@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { PaymentDialog } from "./PaymentDialog";
 
 interface InvoiceTableProps {
   invoices: any[];
@@ -39,9 +41,28 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: payments } = useQuery({
+    queryKey: ["payments", selectedInvoice?.id],
+    queryFn: async () => {
+      if (!selectedInvoice?.id) return [];
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("invoice_id", selectedInvoice.id)
+        .order("payment_date", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedInvoice?.id && viewDialogOpen,
+  });
+
+  const totalPaid = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+  const remainingAmount = selectedInvoice ? Number(selectedInvoice.total_amount) - totalPaid : 0;
 
   const updatePaymentMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "paid" | "partial" | "unpaid" }) => {
@@ -79,10 +100,15 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
     setViewDialogOpen(true);
   };
 
-  const handleUpdatePayment = (invoice: any) => {
+  const handleRecordPayment = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setPaymentDialogOpen(true);
+  };
+
+  const handleUpdateStatus = (invoice: any) => {
     setSelectedInvoice(invoice);
     setPaymentStatus(invoice.payment_status);
-    setPaymentDialogOpen(true);
+    setStatusDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -138,22 +164,33 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                 <TableCell>{getStatusBadge(invoice.payment_status)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewInvoice(invoice)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  {invoice.payment_status !== "paid" && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleViewInvoice(invoice)}
+                      onClick={() => handleRecordPayment(invoice)}
+                      title="Record Payment"
                     >
-                      <Eye className="h-4 w-4" />
+                      <DollarSign className="h-4 w-4" />
                     </Button>
-                    {isAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleUpdatePayment(invoice)}
-                      >
-                        <DollarSign className="h-4 w-4" />
-                      </Button>
-                    )}
+                  )}
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleUpdateStatus(invoice)}
+                      title="Update Status"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -170,7 +207,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Shop</p>
                   <p className="font-medium">{selectedInvoice.shops?.name}</p>
@@ -180,6 +217,21 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                   <p className="font-medium">
                     {new Date(selectedInvoice.created_at).toLocaleDateString()}
                   </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Amount</p>
+                  <p className="text-xl font-bold">${Number(selectedInvoice.total_amount).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Paid</p>
+                  <p className="text-xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Remaining</p>
+                  <p className="text-xl font-bold text-orange-600">${remainingAmount.toFixed(2)}</p>
                 </div>
               </div>
 
@@ -209,6 +261,46 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                 </div>
               </div>
 
+              {payments && payments.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-muted-foreground mb-2">Payment History</p>
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Method</TableHead>
+                          <TableHead>Check #</TableHead>
+                          <TableHead>Notes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {payments.map((payment) => (
+                          <TableRow key={payment.id}>
+                            <TableCell>
+                              {format(new Date(payment.payment_date), "MMM d, yyyy h:mm a")}
+                            </TableCell>
+                            <TableCell className="font-semibold">
+                              ${Number(payment.amount).toFixed(2)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">
+                                {payment.payment_method}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{payment.check_number || "-"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {payment.notes || "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
               {selectedInvoice.notes && (
                 <div>
                   <p className="text-sm text-muted-foreground">Notes</p>
@@ -216,7 +308,16 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                 </div>
               )}
 
-              <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+              {remainingAmount > 0 && (
+                <div className="flex justify-end">
+                  <Button onClick={() => handleRecordPayment(selectedInvoice)}>
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Record Payment
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center p-4 bg-muted rounded-lg mt-4">
                 <span className="font-semibold">Total Amount:</span>
                 <span className="text-xl font-bold text-primary">
                   ${parseFloat(selectedInvoice.total_amount).toFixed(2)}
@@ -227,8 +328,8 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
         </DialogContent>
       </Dialog>
 
-      {/* Update Payment Dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+      {/* Update Payment Status Dialog - Admin Only */}
+      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Update Payment Status</DialogTitle>
@@ -250,7 +351,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                onClick={() => setPaymentDialogOpen(false)}
+                onClick={() => setStatusDialogOpen(false)}
               >
                 Cancel
               </Button>
@@ -263,12 +364,28 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                 }
                 disabled={updatePaymentMutation.isPending}
               >
-                {updatePaymentMutation.isPending ? "Updating..." : "Update"}
+                {updatePaymentMutation.isPending ? "Updating..." : "Update Status"}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Record Payment Dialog */}
+      {selectedInvoice && (
+        <PaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={(open) => {
+            setPaymentDialogOpen(open);
+            if (!open) {
+              queryClient.invalidateQueries({ queryKey: ["payments"] });
+              onRefetch();
+            }
+          }}
+          invoice={selectedInvoice}
+          remainingAmount={remainingAmount}
+        />
+      )}
     </>
   );
 };
