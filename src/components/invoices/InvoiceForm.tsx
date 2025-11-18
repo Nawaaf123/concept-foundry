@@ -158,11 +158,16 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
 
       // Update product stock
       for (const item of items) {
-        const { error: stockError } = await supabase.rpc("update_product_stock", {
-          p_product_id: item.product_id,
-          p_quantity: -item.quantity,
-        });
-        if (stockError) console.error("Stock update error:", stockError);
+        const product = products?.find(p => p.id === item.product_id);
+        if (product) {
+          const { error: stockError } = await supabase
+            .from("products")
+            .update({ 
+              stock_quantity: product.stock_quantity - item.quantity 
+            })
+            .eq("id", item.product_id);
+          if (stockError) console.error("Stock update error:", stockError);
+        }
       }
     },
     onSuccess: () => {

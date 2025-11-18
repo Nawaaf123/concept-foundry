@@ -60,7 +60,7 @@ const Invoices = () => {
       }
 
       if (statusFilter !== "all") {
-        query = query.eq("payment_status", statusFilter);
+        query = query.eq("payment_status", statusFilter as "paid" | "partial" | "unpaid");
       }
 
       const { data, error } = await query;
