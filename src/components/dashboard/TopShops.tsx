@@ -4,17 +4,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { Store } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-export const TopShops = () => {
+interface TopShopsProps {
+  userId?: string;
+  isAdmin?: boolean;
+}
+
+export const TopShops = ({ userId, isAdmin }: TopShopsProps) => {
   const { data: topShops, isLoading } = useQuery({
-    queryKey: ["top-shops"],
+    queryKey: ["top-shops", userId, isAdmin],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("invoices")
         .select(`
           shop_id,
           total_amount,
           shops (name)
         `);
+      
+      // Filter by user if not admin
+      if (!isAdmin && userId) {
+        query = query.eq("created_by", userId);
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
 
@@ -40,6 +52,7 @@ export const TopShops = () => {
 
       return shops;
     },
+    enabled: !!userId,
   });
 
   const maxTotal = topShops?.[0]?.total || 1;
@@ -47,7 +60,7 @@ export const TopShops = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top Shops by Revenue</CardTitle>
+        <CardTitle>{isAdmin ? "Top Shops by Revenue" : "My Top Shops"}</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
