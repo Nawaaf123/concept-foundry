@@ -104,6 +104,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       if (product) {
         newItems[index].product_name = product.name;
         newItems[index].unit_price = product.price;
+        // Recalculate subtotal after setting product price
+        newItems[index].subtotal = newItems[index].quantity * product.price;
       }
     }
 
