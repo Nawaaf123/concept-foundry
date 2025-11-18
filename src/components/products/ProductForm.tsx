@@ -26,6 +26,8 @@ const productSchema = z.object({
   name: z.string().trim().min(1, "Product name is required").max(100, "Name must be less than 100 characters"),
   price: z.coerce.number().min(0.01, "Price must be greater than 0"),
   category: z.string().trim().min(1, "Category is required").max(50, "Category must be less than 50 characters"),
+  stock_quantity: z.coerce.number().int().min(0, "Stock must be 0 or greater"),
+  low_stock_threshold: z.coerce.number().int().min(0, "Threshold must be 0 or greater"),
   image_url: z.string().url("Invalid URL").optional().or(z.literal("")),
 });
 
@@ -46,6 +48,8 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
       name: product?.name || "",
       price: product?.price || 0,
       category: product?.category || "",
+      stock_quantity: product?.stock_quantity || 0,
+      low_stock_threshold: product?.low_stock_threshold || 10,
       image_url: product?.image_url || "",
     },
   });
@@ -56,6 +60,8 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         name: values.name,
         price: values.price,
         category: values.category,
+        stock_quantity: values.stock_quantity,
+        low_stock_threshold: values.low_stock_threshold,
         image_url: values.image_url || null,
       };
 
@@ -139,6 +145,36 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
             </FormItem>
           )}
         />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="stock_quantity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Stock Quantity</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="0" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="low_stock_threshold"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Low Stock Alert</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="10" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
