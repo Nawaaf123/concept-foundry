@@ -312,43 +312,82 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
               </div>
 
               {payments && payments.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground mb-2">Payment History</p>
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Method</TableHead>
-                          <TableHead>Check #</TableHead>
-                          <TableHead>Notes</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {payments.map((payment) => (
-                          <TableRow key={payment.id}>
-                            <TableCell>
-                              {format(new Date(payment.payment_date), "MMM d, yyyy h:mm a")}
-                            </TableCell>
-                            <TableCell className="font-semibold">
-                              ${Number(payment.amount).toFixed(2)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="capitalize">
-                                {payment.payment_method}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{payment.check_number || "-"}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {payment.notes || "-"}
-                            </TableCell>
+                <>
+                  {/* Payment Method Breakdown - Admin Only */}
+                  {isAdmin && (
+                    <div className="mb-4">
+                      <p className="text-sm text-muted-foreground mb-2">Payment Breakdown by Method</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="border rounded-lg p-4 bg-muted/50">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">Cash Payments</span>
+                            <Badge variant="outline">
+                              {payments.filter(p => p.payment_method === 'cash').length} transaction(s)
+                            </Badge>
+                          </div>
+                          <p className="text-2xl font-bold mt-2 text-green-600">
+                            ${payments
+                              .filter(p => p.payment_method === 'cash')
+                              .reduce((sum, p) => sum + Number(p.amount), 0)
+                              .toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="border rounded-lg p-4 bg-muted/50">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">Check Payments</span>
+                            <Badge variant="outline">
+                              {payments.filter(p => p.payment_method === 'check').length} transaction(s)
+                            </Badge>
+                          </div>
+                          <p className="text-2xl font-bold mt-2 text-blue-600">
+                            ${payments
+                              .filter(p => p.payment_method === 'check')
+                              .reduce((sum, p) => sum + Number(p.amount), 0)
+                              .toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mb-4">
+                    <p className="text-sm text-muted-foreground mb-2">Payment History</p>
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Method</TableHead>
+                            <TableHead>Check #</TableHead>
+                            <TableHead>Notes</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {payments.map((payment) => (
+                            <TableRow key={payment.id}>
+                              <TableCell>
+                                {format(new Date(payment.payment_date), "MMM d, yyyy h:mm a")}
+                              </TableCell>
+                              <TableCell className="font-semibold">
+                                ${Number(payment.amount).toFixed(2)}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="capitalize">
+                                  {payment.payment_method}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{payment.check_number || "-"}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {payment.notes || "-"}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               {selectedInvoice.notes && (
