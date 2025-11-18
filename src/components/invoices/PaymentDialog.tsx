@@ -68,20 +68,22 @@ export const PaymentDialog = ({
 
       if (paymentError) throw paymentError;
 
-      // Calculate total paid
+      // Calculate total paid (including the payment we just inserted)
       const { data: payments } = await supabase
         .from("payments")
         .select("amount")
         .eq("invoice_id", invoice.id);
 
-      const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount), paymentAmount);
+      const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
       
-      // Update invoice payment status
-      let newStatus: "paid" | "partial" | "unpaid" = "unpaid";
-      if (totalPaid >= invoice.total_amount) {
+      // Determine status: partial until full amount is paid
+      let newStatus: "paid" | "partial" | "unpaid";
+      if (totalPaid >= Number(invoice.total_amount)) {
         newStatus = "paid";
       } else if (totalPaid > 0) {
         newStatus = "partial";
+      } else {
+        newStatus = "unpaid";
       }
 
       const { error: statusError } = await supabase
