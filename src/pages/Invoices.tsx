@@ -6,14 +6,7 @@ import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { InvoiceDialog } from "@/components/invoices/InvoiceDialog";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { InvoiceFilters } from "@/components/invoices/InvoiceFilters";
 import { useAuth } from "@/lib/auth";
 
 const Invoices = () => {
@@ -21,7 +14,23 @@ const Invoices = () => {
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [shopFilter, setShopFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("date_desc");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const { user } = useAuth();
+
+  const { data: shops } = useQuery({
+    queryKey: ["shops"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("shops")
+        .select("id, name")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: userRole } = useQuery({
     queryKey: ["userRole", user?.id],
@@ -41,7 +50,7 @@ const Invoices = () => {
   const isAdmin = userRole === "admin";
 
   const { data: invoices, isLoading, refetch } = useQuery({
-    queryKey: ["invoices", searchQuery, statusFilter],
+    queryKey: ["invoices", searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo],
     queryFn: async () => {
       let query = supabase
         .from("invoices")
@@ -52,15 +61,48 @@ const Invoices = () => {
             owner_name,
             phone
           )
-        `)
-        .order("created_at", { ascending: false });
+        `);
 
+      // Search filter
       if (searchQuery) {
         query = query.or(`invoice_number.ilike.%${searchQuery}%,shops.name.ilike.%${searchQuery}%`);
       }
 
+      // Status filter
       if (statusFilter !== "all") {
         query = query.eq("payment_status", statusFilter as "paid" | "partial" | "unpaid");
+      }
+
+      // Shop filter
+      if (shopFilter !== "all") {
+        query = query.eq("shop_id", shopFilter);
+      }
+
+      // Date range filter
+      if (dateFrom) {
+        query = query.gte("created_at", new Date(dateFrom).toISOString());
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        query = query.lte("created_at", endDate.toISOString());
+      }
+
+      // Sorting
+      switch (sortBy) {
+        case "date_asc":
+          query = query.order("created_at", { ascending: true });
+          break;
+        case "amount_desc":
+          query = query.order("total_amount", { ascending: false });
+          break;
+        case "amount_asc":
+          query = query.order("total_amount", { ascending: true });
+          break;
+        case "date_desc":
+        default:
+          query = query.order("created_at", { ascending: false });
+          break;
       }
 
       const { data, error } = await query;
@@ -68,6 +110,15 @@ const Invoices = () => {
       return data;
     },
   });
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setShopFilter("all");
+    setSortBy("date_desc");
+    setDateFrom("");
+    setDateTo("");
+  };
 
   const handleAddInvoice = () => {
     setEditingInvoice(null);
@@ -99,25 +150,22 @@ const Invoices = () => {
           </Button>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Input
-            placeholder="Search by invoice # or shop name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-sm"
-          />
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="unpaid">Unpaid</SelectItem>
-              <SelectItem value="partial">Partial</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <InvoiceFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          shopFilter={shopFilter}
+          onShopChange={setShopFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          dateFrom={dateFrom}
+          onDateFromChange={setDateFrom}
+          dateTo={dateTo}
+          onDateToChange={setDateTo}
+          shops={shops || []}
+          onClearFilters={handleClearFilters}
+        />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
