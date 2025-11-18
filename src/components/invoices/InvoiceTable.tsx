@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, DollarSign } from "lucide-react";
+import { Eye, Edit, DollarSign, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { PaymentDialog } from "./PaymentDialog";
+import { generateInvoicePDF } from "@/lib/pdfGenerator";
 
 interface InvoiceTableProps {
   invoices: any[];
@@ -111,6 +112,47 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
     setStatusDialogOpen(true);
   };
 
+  const handleExportPDF = async (invoice: any) => {
+    try {
+      // Fetch invoice items
+      const { data: items } = await supabase
+        .from("invoice_items")
+        .select("*")
+        .eq("invoice_id", invoice.id);
+
+      // Fetch payments
+      const { data: paymentsData } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("invoice_id", invoice.id)
+        .order("payment_date", { ascending: false });
+
+      const totalPaid = paymentsData?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+      const remainingAmount = Number(invoice.total_amount) - totalPaid;
+
+      generateInvoicePDF(
+        {
+          ...invoice,
+          items: items || [],
+          payments: paymentsData || [],
+        },
+        totalPaid,
+        remainingAmount
+      );
+
+      toast({
+        title: "Success",
+        description: "Invoice PDF downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
       paid: "default",
@@ -191,6 +233,14 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                       <Edit className="h-4 w-4" />
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleExportPDF(invoice)}
+                    title="Export PDF"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -309,7 +359,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
               )}
 
               {remainingAmount > 0 && (
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
                   <Button onClick={() => handleRecordPayment(selectedInvoice)}>
                     <DollarSign className="h-4 w-4 mr-2" />
                     Record Payment
@@ -322,6 +372,16 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                 <span className="text-xl font-bold text-primary">
                   ${parseFloat(selectedInvoice.total_amount).toFixed(2)}
                 </span>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => handleExportPDF(selectedInvoice)}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export PDF
+                </Button>
               </div>
             </div>
           )}

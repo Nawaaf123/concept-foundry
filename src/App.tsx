@@ -12,6 +12,7 @@ import Products from "./pages/Products";
 import ProductAnalytics from "./pages/ProductAnalytics";
 import Shops from "./pages/Shops";
 import Invoices from "./pages/Invoices";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Invoices />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <Users />
                 </ProtectedRoute>
               }
             />
