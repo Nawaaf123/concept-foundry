@@ -35,6 +35,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const { user } = useAuth();
   const [shopId, setShopId] = useState(invoice?.shop_id || "");
   const [notes, setNotes] = useState(invoice?.notes || "");
+  const [paymentStatus, setPaymentStatus] = useState<"paid" | "partial" | "unpaid">(invoice?.payment_status || "unpaid");
   const [items, setItems] = useState<InvoiceItem[]>([]);
 
   const { data: shops } = useQuery({
@@ -131,7 +132,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           invoice_number: invoiceNumber,
           shop_id: shopId,
           total_amount: totalAmount,
-          payment_status: "unpaid",
+          payment_status: paymentStatus,
           notes: notes || null,
           created_by: user?.id,
         })
@@ -275,6 +276,20 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
               ))}
             </div>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="payment_status">Initial Payment Status *</Label>
+          <Select value={paymentStatus} onValueChange={(value: "paid" | "partial" | "unpaid") => setPaymentStatus(value)} required>
+            <SelectTrigger>
+              <SelectValue placeholder="Select payment status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="paid">Paid - Full payment received</SelectItem>
+              <SelectItem value="partial">Partial - Some payment received</SelectItem>
+              <SelectItem value="unpaid">Unpaid - No payment received</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
