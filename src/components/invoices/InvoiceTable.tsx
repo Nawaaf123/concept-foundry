@@ -44,7 +44,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
   const queryClient = useQueryClient();
 
   const updatePaymentMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status }: { id: string; status: "paid" | "partial" | "unpaid" }) => {
       const { error } = await supabase
         .from("invoices")
         .update({ payment_status: status })
@@ -258,7 +258,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                 onClick={() =>
                   updatePaymentMutation.mutate({
                     id: selectedInvoice.id,
-                    status: paymentStatus,
+                    status: paymentStatus as "paid" | "partial" | "unpaid",
                   })
                 }
                 disabled={updatePaymentMutation.isPending}
