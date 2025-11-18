@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { InvoiceDialog } from "@/components/invoices/InvoiceDialog";
 import { InvoiceFilters } from "@/components/invoices/InvoiceFilters";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import { exportInvoicesToExcel } from "@/lib/excelGenerator";
 
 const Invoices = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -18,7 +20,9 @@ const Invoices = () => {
   const [sortBy, setSortBy] = useState<string>("date_desc");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const { data: shops } = useQuery({
     queryKey: ["shops"],
@@ -136,6 +140,25 @@ const Invoices = () => {
     refetch();
   };
 
+  const handleExportToExcel = async () => {
+    setIsExporting(true);
+    try {
+      await exportInvoicesToExcel();
+      toast({
+        title: "Success",
+        description: "Invoices exported to Excel successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to export invoices",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -144,10 +167,20 @@ const Invoices = () => {
             <h2 className="text-3xl font-bold tracking-tight">Invoices</h2>
             <p className="text-muted-foreground">Create and manage sales invoices</p>
           </div>
-          <Button onClick={handleAddInvoice}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Invoice
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleExportToExcel}
+              disabled={isExporting || !invoices || invoices.length === 0}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              {isExporting ? "Exporting..." : "Export to Excel"}
+            </Button>
+            <Button onClick={handleAddInvoice}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Invoice
+            </Button>
+          </div>
         </div>
 
         <InvoiceFilters
