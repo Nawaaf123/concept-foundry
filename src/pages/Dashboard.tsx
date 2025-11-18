@@ -8,38 +8,75 @@ import { TopProducts } from "@/components/dashboard/TopProducts";
 import { TopShops } from "@/components/dashboard/TopShops";
 import { LowStockAlert } from "@/components/dashboard/LowStockAlert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth";
 
 const Dashboard = () => {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ["dashboard-stats"],
+  const { user } = useAuth();
+
+  // Check if user is admin
+  const { data: isAdmin } = useQuery({
+    queryKey: ["user-role", user?.id],
     queryFn: async () => {
-      // Get products count
+      if (!user?.id) return false;
+      const { data } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "admin",
+      });
+      return data || false;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["dashboard-stats", user?.id, isAdmin],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      // Get products count (always show all)
       const { count: productsCount } = await supabase
         .from("products")
         .select("*", { count: "exact", head: true })
         .eq("is_active", true);
 
-      // Get shops count
+      // Get shops count (always show all)
       const { count: shopsCount } = await supabase
         .from("shops")
         .select("*", { count: "exact", head: true });
 
-      // Get invoices count
-      const { count: invoicesCount } = await supabase
+      // Get invoices count - filtered for sales
+      let invoicesQuery = supabase
         .from("invoices")
         .select("*", { count: "exact", head: true });
+      
+      if (!isAdmin) {
+        invoicesQuery = invoicesQuery.eq("created_by", user.id);
+      }
+      
+      const { count: invoicesCount } = await invoicesQuery;
 
-      // Get total revenue
-      const { data: invoices } = await supabase
+      // Get total revenue - filtered for sales
+      let revenueQuery = supabase
         .from("invoices")
         .select("total_amount");
       
+      if (!isAdmin) {
+        revenueQuery = revenueQuery.eq("created_by", user.id);
+      }
+
+      const { data: invoices } = await revenueQuery;
+      
       const totalRevenue = invoices?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
 
-      // Get payment collection rate
-      const { data: allInvoices } = await supabase
+      // Get payment collection rate - filtered for sales
+      let paymentQuery = supabase
         .from("invoices")
         .select("payment_status, total_amount");
+      
+      if (!isAdmin) {
+        paymentQuery = paymentQuery.eq("created_by", user.id);
+      }
+
+      const { data: allInvoices } = await paymentQuery;
 
       const paidAmount = allInvoices
         ?.filter(inv => inv.payment_status === "paid")
@@ -55,14 +92,21 @@ const Dashboard = () => {
         collectionRate,
       };
     },
+    enabled: !!user?.id && isAdmin !== undefined,
   });
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">Overview of your sales and business metrics</p>
+          <h2 className="text-3xl font-bold tracking-tight">
+            {isAdmin ? "Dashboard" : "My Sales Dashboard"}
+          </h2>
+          <p className="text-muted-foreground">
+            {isAdmin 
+              ? "Overview of your sales and business metrics" 
+              : "Your personal sales performance and metrics"}
+          </p>
         </div>
 
         {/* Stats Grid */}
@@ -80,16 +124,16 @@ const Dashboard = () => {
             description="Customer shops registered"
           />
           <StatsCard
-            title="Total Invoices"
+            title={isAdmin ? "Total Invoices" : "My Invoices"}
             value={isLoading ? "..." : stats?.invoicesCount || 0}
             icon={FileText}
-            description="All time invoices"
+            description={isAdmin ? "All time invoices" : "Invoices I created"}
           />
           <StatsCard
-            title="Total Revenue"
+            title={isAdmin ? "Total Revenue" : "My Sales"}
             value={isLoading ? "..." : `$${stats?.totalRevenue.toFixed(2)}`}
             icon={DollarSign}
-            description="All time revenue"
+            description={isAdmin ? "All time revenue" : "Total sales value"}
           />
         </div>
 
@@ -97,7 +141,9 @@ const Dashboard = () => {
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Payment Collection Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {isAdmin ? "Payment Collection Rate" : "My Collection Rate"}
+              </CardTitle>
               <Percent className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -132,12 +178,12 @@ const Dashboard = () => {
         {/* Charts and Lists Grid */}
         <div className="grid gap-4 md:grid-cols-2">
           <TopProducts />
-          <TopShops />
+          <TopShops userId={user?.id} isAdmin={isAdmin} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <LowStockAlert />
-          <RecentActivity />
+          <RecentActivity userId={user?.id} isAdmin={isAdmin} />
         </div>
       </div>
     </DashboardLayout>

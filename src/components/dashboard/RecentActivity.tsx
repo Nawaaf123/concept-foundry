@@ -5,11 +5,16 @@ import { format } from "date-fns";
 import { FileText, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-export const RecentActivity = () => {
+interface RecentActivityProps {
+  userId?: string;
+  isAdmin?: boolean;
+}
+
+export const RecentActivity = ({ userId, isAdmin }: RecentActivityProps) => {
   const { data: recentInvoices, isLoading } = useQuery({
-    queryKey: ["recent-invoices"],
+    queryKey: ["recent-invoices", userId, isAdmin],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("invoices")
         .select(`
           *,
@@ -17,9 +22,17 @@ export const RecentActivity = () => {
         `)
         .order("created_at", { ascending: false })
         .limit(5);
+      
+      // Filter by user if not admin
+      if (!isAdmin && userId) {
+        query = query.eq("created_by", userId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
+    enabled: !!userId,
   });
 
   const getStatusColor = (status: string) => {
@@ -38,7 +51,7 @@ export const RecentActivity = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Invoices</CardTitle>
+        <CardTitle>{isAdmin ? "Recent Invoices" : "My Recent Invoices"}</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
