@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { InventoryDialog } from "./InventoryDialog";
 
 interface ProductTableProps {
   products: any[];
@@ -32,6 +33,7 @@ interface ProductTableProps {
 
 export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [inventoryProduct, setInventoryProduct] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -121,6 +123,7 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
+              <TableHead>Stock</TableHead>
               <TableHead>Status</TableHead>
               {isAdmin && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
@@ -135,6 +138,16 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
                   </Badge>
                 </TableCell>
                 <TableCell>${product.price.toFixed(2)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className={product.stock_quantity <= product.low_stock_threshold ? "text-destructive font-semibold" : ""}>
+                      {product.stock_quantity}
+                    </span>
+                    {product.stock_quantity <= product.low_stock_threshold && (
+                      <Badge variant="destructive" className="text-xs">Low</Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   {isAdmin ? (
                     <Button
@@ -160,6 +173,14 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
                 {isAdmin && (
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setInventoryProduct(product)}
+                        title="Adjust Inventory"
+                      >
+                        <Package className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -202,6 +223,12 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <InventoryDialog
+        product={inventoryProduct}
+        open={!!inventoryProduct}
+        onOpenChange={(open) => !open && setInventoryProduct(null)}
+      />
     </>
   );
 };

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Package, ShoppingBag, FileText, Users, LayoutDashboard } from "lucide-react";
+import { LogOut, Package, ShoppingBag, FileText, Users, LayoutDashboard, BarChart3 } from "lucide-react";
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
@@ -15,6 +15,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Package, label: "Products", path: "/products" },
+    { icon: BarChart3, label: "Analytics", path: "/analytics" },
     { icon: ShoppingBag, label: "Shops", path: "/shops" },
     { icon: FileText, label: "Invoices", path: "/invoices" },
     { icon: Users, label: "Users", path: "/users" },
