@@ -7,6 +7,7 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { TopProducts } from "@/components/dashboard/TopProducts";
 import { TopShops } from "@/components/dashboard/TopShops";
 import { LowStockAlert } from "@/components/dashboard/LowStockAlert";
+import { PendingPayments } from "@/components/dashboard/PendingPayments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 
@@ -174,6 +175,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Pending Payments - Full Width */}
+        <PendingPayments userId={user?.id} isAdmin={isAdmin} />
 
         {/* Charts and Lists Grid */}
         <div className="grid gap-4 md:grid-cols-2">
