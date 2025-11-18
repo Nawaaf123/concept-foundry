@@ -138,9 +138,19 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter category (e.g., Electronics, Clothing)" {...field} />
-              </FormControl>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Disposable Vapes">Disposable Vapes</SelectItem>
+                  <SelectItem value="E-Liquids">E-Liquids</SelectItem>
+                  <SelectItem value="Pod Systems">Pod Systems</SelectItem>
+                  <SelectItem value="Accessories">Accessories</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
