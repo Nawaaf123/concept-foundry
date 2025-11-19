@@ -51,6 +51,18 @@ const Invoices = () => {
     enabled: !!user?.id,
   });
 
+  const { data: profiles } = useQuery({
+    queryKey: ["profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   const isAdmin = userRole === "admin";
 
   const { data: invoices, isLoading, refetch } = useQuery({
@@ -64,9 +76,6 @@ const Invoices = () => {
             name,
             owner_name,
             phone
-          ),
-          profiles:created_by (
-            full_name
           )
         `);
 
@@ -211,6 +220,7 @@ const Invoices = () => {
             onEdit={handleEditInvoice}
             isAdmin={isAdmin}
             onRefetch={refetch}
+            profiles={profiles || []}
           />
         )}
 
