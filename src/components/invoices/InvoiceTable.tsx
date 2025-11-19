@@ -14,6 +14,8 @@ import { Eye, Edit, DollarSign, Download, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { ShopInvoiceGroup } from "./ShopInvoiceGroup";
+import { DistributePaymentDialog } from "./DistributePaymentDialog";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +57,10 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [distributeDialogOpen, setDistributeDialogOpen] = useState(false);
+  const [selectedShopInvoices, setSelectedShopInvoices] = useState<any[]>([]);
+  const [selectedShopName, setSelectedShopName] = useState("");
+  const [selectedShopPending, setSelectedShopPending] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -229,6 +235,31 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
     );
   };
 
+  // Group invoices by shop
+  const groupedInvoices = invoices.reduce((acc, invoice) => {
+    const shopId = invoice.shop_id;
+    if (!acc[shopId]) {
+      acc[shopId] = {
+        shopName: invoice.shops?.name || "Unknown Shop",
+        shopLocation: [
+          invoice.shops?.city,
+          invoice.shops?.state,
+          invoice.shops?.zip_code,
+        ].filter(Boolean).join(", ") || "N/A",
+        invoices: [],
+      };
+    }
+    acc[shopId].invoices.push(invoice);
+    return acc;
+  }, {} as Record<string, { shopName: string; shopLocation: string; invoices: any[] }>);
+
+  const handleDistributePayment = (shopName: string, invoices: any[], totalPending: number) => {
+    setSelectedShopName(shopName);
+    setSelectedShopInvoices(invoices);
+    setSelectedShopPending(totalPending);
+    setDistributeDialogOpen(true);
+  };
+
   if (invoices.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -240,110 +271,34 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
     );
   }
 
+  type GroupData = { shopName: string; shopLocation: string; invoices: any[] };
+
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Invoice #</TableHead>
-              <TableHead>Shop</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Pending</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created By</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invoices.map((invoice) => {
-              const pendingAmount = getPendingAmount(invoice.id, Number(invoice.total_amount));
-              return (
-              <TableRow key={invoice.id}>
-                <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                <TableCell>{invoice.shops?.name}</TableCell>
-                <TableCell>
-                  {[
-                    invoice.shops?.city,
-                    invoice.shops?.state,
-                    invoice.shops?.zip_code,
-                  ].filter(Boolean).join(", ") || "N/A"}
-                </TableCell>
-                <TableCell>
-                  {new Date(invoice.created_at).toLocaleDateString()}
-                </TableCell>
-                <TableCell className="font-semibold">
-                  ${parseFloat(invoice.total_amount).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <span className={`font-semibold ${pendingAmount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                    ${pendingAmount.toFixed(2)}
-                  </span>
-                </TableCell>
-                <TableCell>{getStatusBadge(invoice.payment_status)}</TableCell>
-                <TableCell>
-                  {profiles?.find((p) => p.id === invoice.created_by)?.full_name ?? "Unknown"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleViewInvoice(invoice)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  {invoice.payment_status !== "paid" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRecordPayment(invoice)}
-                      title="Record Payment"
-                    >
-                      <DollarSign className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {isAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleUpdateStatus(invoice)}
-                      title="Update Status"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleExportPDF(invoice)}
-                    title="Export PDF"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  {isAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedInvoice(invoice);
-                        setDeleteDialogOpen(true);
-                      }}
-                      title="Delete Invoice"
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                  </div>
-                </TableCell>
-              </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+      <div className="space-y-4">
+        {(Object.entries(groupedInvoices) as [string, GroupData][]).map(([shopId, groupData]) => {
+          const { shopName, shopLocation, invoices: shopInvoices } = groupData;
+          return (
+            <ShopInvoiceGroup
+              key={shopId}
+              shopName={shopName}
+              shopLocation={shopLocation}
+              invoices={shopInvoices}
+              allPayments={allPayments || []}
+              onViewInvoice={handleViewInvoice}
+              onRecordPayment={handleRecordPayment}
+              onUpdateStatus={handleUpdateStatus}
+              onExportPDF={handleExportPDF}
+              onDeleteInvoice={(invoice) => {
+                setSelectedInvoice(invoice);
+                setDeleteDialogOpen(true);
+              }}
+              onDistributePayment={handleDistributePayment}
+              isAdmin={isAdmin}
+              profiles={profiles}
+            />
+          );
+        })}
       </div>
 
       {/* View Invoice Dialog */}
@@ -603,6 +558,16 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Distribute Payment Dialog */}
+      <DistributePaymentDialog
+        open={distributeDialogOpen}
+        onOpenChange={setDistributeDialogOpen}
+        shopName={selectedShopName}
+        invoices={selectedShopInvoices}
+        totalPending={selectedShopPending}
+        onRefetch={onRefetch}
+      />
     </>
   );
 };
