@@ -15,6 +15,7 @@ const Products = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string>("all");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -35,23 +36,36 @@ const Products = () => {
 
   const isAdmin = userRole === "admin";
 
-  const { data: categories } = useQuery({
-    queryKey: ["productCategories"],
+  const { data: allProducts } = useQuery({
+    queryKey: ["allProducts"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("category")
+        .select("category, subcategory")
         .order("category");
       
       if (error) throw error;
-      
-      const uniqueCategories = Array.from(new Set(data.map(p => p.category).filter(Boolean)));
-      return uniqueCategories;
+      return data;
     },
   });
 
+  const categories = Array.from(
+    new Set(allProducts?.map(p => p.category).filter(Boolean) || [])
+  );
+
+  const subcategories = categoryFilter === "all"
+    ? Array.from(new Set(allProducts?.map(p => p.subcategory).filter(Boolean) || []))
+    : Array.from(
+        new Set(
+          allProducts
+            ?.filter(p => p.category === categoryFilter)
+            .map(p => p.subcategory)
+            .filter(Boolean) || []
+        )
+      );
+
   const { data: products, isLoading, refetch } = useQuery({
-    queryKey: ["products", categoryFilter],
+    queryKey: ["products", categoryFilter, subcategoryFilter],
     queryFn: async () => {
       let query = supabase
         .from("products")
@@ -62,11 +76,20 @@ const Products = () => {
         query = query.eq("category", categoryFilter);
       }
 
+      if (subcategoryFilter !== "all") {
+        query = query.eq("subcategory", subcategoryFilter);
+      }
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
     },
   });
+
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
+    setSubcategoryFilter("all"); // Reset subcategory when category changes
+  };
 
   const handleAddProduct = () => {
     if (!isAdmin) {
@@ -117,7 +140,7 @@ const Products = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select value={categoryFilter} onValueChange={handleCategoryChange}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
@@ -126,6 +149,24 @@ const Products = () => {
               {categories?.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={subcategoryFilter} 
+            onValueChange={setSubcategoryFilter}
+            disabled={categoryFilter === "all" && subcategories.length === 0}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Filter by subcategory" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Subcategories</SelectItem>
+              {subcategories?.map((subcategory) => (
+                <SelectItem key={subcategory} value={subcategory}>
+                  {subcategory}
                 </SelectItem>
               ))}
             </SelectContent>
