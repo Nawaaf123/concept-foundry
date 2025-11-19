@@ -142,12 +142,14 @@ export const PaymentDialog = ({
               type="number"
               step="0.01"
               min="0.01"
-              max={remainingAmount}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="Enter amount"
               required
             />
+            <p className="text-sm text-muted-foreground">
+              Maximum: ${remainingAmount.toFixed(2)}
+            </p>
           </div>
 
           <div className="space-y-2">
