@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, DollarSign, Download } from "lucide-react";
+import { Eye, Edit, DollarSign, Download, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,16 @@ import {
 import { Label } from "@/components/ui/label";
 import { PaymentDialog } from "./PaymentDialog";
 import { generateInvoicePDF } from "@/lib/pdfGenerator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface InvoiceTableProps {
   invoices: any[];
@@ -43,6 +53,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -109,6 +120,33 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
       toast({
         title: "Error",
         description: "Failed to update payment status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const { error } = await supabase
+        .from("invoices")
+        .delete()
+        .eq("id", invoiceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      toast({
+        title: "Success",
+        description: "Invoice deleted successfully",
+      });
+      setDeleteDialogOpen(false);
+      setSelectedInvoice(null);
+      onRefetch();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete invoice",
         variant: "destructive",
       });
     },
@@ -272,6 +310,20 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                   >
                     <Download className="h-4 w-4" />
                   </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedInvoice(invoice);
+                        setDeleteDialogOpen(true);
+                      }}
+                      title="Delete Invoice"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -517,6 +569,27 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
           remainingAmount={remainingAmount}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete invoice {selectedInvoice?.invoice_number}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedInvoice && deleteMutation.mutate(selectedInvoice.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
