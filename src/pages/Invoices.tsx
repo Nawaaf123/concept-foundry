@@ -65,7 +65,7 @@ const Invoices = () => {
             owner_name,
             phone
           ),
-          profiles!invoices_created_by_fkey (
+          profiles:created_by (
             full_name
           )
         `);
