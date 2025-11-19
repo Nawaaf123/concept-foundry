@@ -38,6 +38,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "partial" | "unpaid">(invoice?.payment_status || "unpaid");
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [customerEmail, setCustomerEmail] = useState("");
+  const [cashAmount, setCashAmount] = useState("");
+  const [checkAmount, setCheckAmount] = useState("");
 
   const { data: shops } = useQuery({
     queryKey: ["shops"],
@@ -129,6 +131,25 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         throw new Error("Please provide a customer email");
       }
 
+      // Validate payment amounts if paid or partial
+      if (paymentStatus === "paid" || paymentStatus === "partial") {
+        const cash = parseFloat(cashAmount) || 0;
+        const check = parseFloat(checkAmount) || 0;
+        const totalPayment = cash + check;
+
+        if (totalPayment === 0) {
+          throw new Error("Please enter payment amounts for cash and/or check");
+        }
+
+        if (paymentStatus === "paid" && totalPayment !== totalAmount) {
+          throw new Error(`For paid status, total payment (${totalPayment.toFixed(2)}) must equal invoice total (${totalAmount.toFixed(2)})`);
+        }
+
+        if (paymentStatus === "partial" && totalPayment > totalAmount) {
+          throw new Error(`Payment amount (${totalPayment.toFixed(2)}) cannot exceed invoice total (${totalAmount.toFixed(2)})`);
+        }
+      }
+
       // Generate invoice number
       const { data: invoiceNumber } = await supabase.rpc("generate_invoice_number");
 
@@ -163,6 +184,40 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         .insert(invoiceItems);
 
       if (itemsError) throw itemsError;
+
+      // Create payment records if paid or partial
+      if (paymentStatus === "paid" || paymentStatus === "partial") {
+        const cash = parseFloat(cashAmount) || 0;
+        const check = parseFloat(checkAmount) || 0;
+
+        const paymentRecords = [];
+        
+        if (cash > 0) {
+          paymentRecords.push({
+            invoice_id: invoiceData.id,
+            amount: cash,
+            payment_method: "cash" as const,
+            created_by: user?.id,
+          });
+        }
+
+        if (check > 0) {
+          paymentRecords.push({
+            invoice_id: invoiceData.id,
+            amount: check,
+            payment_method: "check" as const,
+            created_by: user?.id,
+          });
+        }
+
+        if (paymentRecords.length > 0) {
+          const { error: paymentsError } = await supabase
+            .from("payments")
+            .insert(paymentRecords);
+
+          if (paymentsError) throw paymentsError;
+        }
+      }
 
       // Update product stock
       for (const item of items) {
@@ -395,7 +450,18 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
 
         <div className="space-y-2">
           <Label htmlFor="payment_status">Initial Payment Status *</Label>
-          <Select value={paymentStatus} onValueChange={(value: "paid" | "partial" | "unpaid") => setPaymentStatus(value)} required>
+          <Select 
+            value={paymentStatus} 
+            onValueChange={(value: "paid" | "partial" | "unpaid") => {
+              setPaymentStatus(value);
+              // Reset payment amounts when changing status
+              if (value === "unpaid") {
+                setCashAmount("");
+                setCheckAmount("");
+              }
+            }} 
+            required
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select payment status" />
             </SelectTrigger>
@@ -406,6 +472,60 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
             </SelectContent>
           </Select>
         </div>
+
+        {(paymentStatus === "paid" || paymentStatus === "partial") && (
+          <div className="p-4 border rounded-lg space-y-4 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold">Payment Details</Label>
+              {paymentStatus === "paid" && (
+                <span className="text-sm text-muted-foreground">
+                  Must equal ${totalAmount.toFixed(2)}
+                </span>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cash_amount">Cash Amount</Label>
+                <Input
+                  id="cash_amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={cashAmount}
+                  onChange={(e) => setCashAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="check_amount">Check Amount</Label>
+                <Input
+                  id="check_amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={checkAmount}
+                  onChange={(e) => setCheckAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-2 border-t">
+              <span className="text-sm font-medium">Total Payment:</span>
+              <span className="text-lg font-bold text-primary">
+                ${((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0)).toFixed(2)}
+              </span>
+            </div>
+
+            {paymentStatus === "partial" && (
+              <p className="text-xs text-muted-foreground">
+                Remaining balance: ${(totalAmount - ((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0))).toFixed(2)}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="notes">Notes</Label>
