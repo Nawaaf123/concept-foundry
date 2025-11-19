@@ -136,12 +136,16 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           throw new Error("Please enter payment amounts for cash and/or check");
         }
 
-        if (paymentStatus === "paid" && totalPayment !== totalAmount) {
-          throw new Error(`For paid status, total payment (${totalPayment.toFixed(2)}) must equal invoice total (${totalAmount.toFixed(2)})`);
+        // Use tolerance-based comparison to handle floating-point precision issues
+        const tolerance = 0.01;
+        const difference = Math.abs(totalPayment - totalAmount);
+
+        if (paymentStatus === "paid" && difference > tolerance) {
+          throw new Error(`For paid status, total payment ($${totalPayment.toFixed(2)}) must equal invoice total ($${totalAmount.toFixed(2)})`);
         }
 
-        if (paymentStatus === "partial" && totalPayment > totalAmount) {
-          throw new Error(`Payment amount (${totalPayment.toFixed(2)}) cannot exceed invoice total (${totalAmount.toFixed(2)})`);
+        if (paymentStatus === "partial" && totalPayment > totalAmount + tolerance) {
+          throw new Error(`Payment amount ($${totalPayment.toFixed(2)}) cannot exceed invoice total ($${totalAmount.toFixed(2)})`);
         }
       }
 
