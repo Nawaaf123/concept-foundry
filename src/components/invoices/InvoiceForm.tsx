@@ -37,6 +37,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [notes, setNotes] = useState(invoice?.notes || "");
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "partial" | "unpaid">(invoice?.payment_status || "unpaid");
   const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [customerEmail, setCustomerEmail] = useState("");
 
   const { data: shops } = useQuery({
     queryKey: ["shops"],
@@ -124,6 +125,10 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         throw new Error("Please select a shop and add at least one product");
       }
 
+      if (!customerEmail) {
+        throw new Error("Please provide a customer email");
+      }
+
       // Generate invoice number
       const { data: invoiceNumber } = await supabase.rpc("generate_invoice_number");
 
@@ -172,11 +177,45 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           if (stockError) console.error("Stock update error:", stockError);
         }
       }
+
+      // Send email with invoice
+      try {
+        const { generateInvoicePDF } = await import("@/lib/pdfGenerator");
+        const selectedShop = shops?.find(s => s.id === shopId);
+        
+        if (selectedShop) {
+          const invoiceWithShop = {
+            ...invoiceData,
+            shops: selectedShop,
+            items: items,
+          };
+          
+          // Generate PDF
+          const pdf = generateInvoicePDF(invoiceWithShop, 0, totalAmount);
+          const pdfBase64 = pdf.output('datauristring').split(',')[1];
+          
+          // Send email
+          await supabase.functions.invoke('send-invoice-email', {
+            body: {
+              to: customerEmail,
+              invoiceNumber: invoiceNumber,
+              shopName: selectedShop.name,
+              totalAmount: totalAmount,
+              pdfBase64: pdfBase64,
+            }
+          });
+        }
+      } catch (emailError) {
+        console.error("Failed to send invoice email:", emailError);
+        // Don't fail the invoice creation if email fails
+      }
+
+      return invoiceData;
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Invoice created successfully",
+        description: "Invoice created and sent via email successfully",
       });
       onSuccess();
     },
@@ -199,7 +238,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="shop">Shop *</Label>
-          <Select value={shopId} onValueChange={setShopId} required>
+          <Select value={shopId} onValueChange={(value) => {
+            setShopId(value);
+            const shop = shops?.find(s => s.id === value);
+            if (shop?.email) {
+              setCustomerEmail(shop.email);
+            } else {
+              setCustomerEmail("");
+            }
+          }} required>
             <SelectTrigger>
               <SelectValue placeholder="Select a shop" />
             </SelectTrigger>
@@ -212,6 +259,72 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
             </SelectContent>
           </Select>
         </div>
+
+        {shopId && shops && (() => {
+          const selectedShop = shops.find(s => s.id === shopId);
+          if (!selectedShop) return null;
+          
+          return (
+            <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+              <h3 className="font-semibold text-sm">Customer Details</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {selectedShop.owner_name && (
+                  <div>
+                    <span className="text-muted-foreground">Owner:</span>{" "}
+                    <span className="font-medium">{selectedShop.owner_name}</span>
+                  </div>
+                )}
+                {selectedShop.phone && (
+                  <div>
+                    <span className="text-muted-foreground">Phone:</span>{" "}
+                    <span className="font-medium">{selectedShop.phone}</span>
+                  </div>
+                )}
+                {selectedShop.email && (
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Email:</span>{" "}
+                    <span className="font-medium">{selectedShop.email}</span>
+                  </div>
+                )}
+                {(selectedShop.street_address || selectedShop.city || selectedShop.state) && (
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Location:</span>{" "}
+                    <span className="font-medium">
+                      {[
+                        selectedShop.street_address,
+                        selectedShop.street_address_line_2,
+                        selectedShop.city,
+                        selectedShop.state,
+                        selectedShop.zip_code
+                      ].filter(Boolean).join(", ")}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {shopId && (
+          <div className="space-y-2">
+            <Label htmlFor="customer_email">
+              Customer Email {shops?.find(s => s.id === shopId)?.email ? "(from shop)" : "*"}
+            </Label>
+            <Input
+              id="customer_email"
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="Enter customer email for invoice"
+              required={!shops?.find(s => s.id === shopId)?.email}
+            />
+            <p className="text-xs text-muted-foreground">
+              {shops?.find(s => s.id === shopId)?.email 
+                ? "Invoice will be sent to the shop's email address. You can change it if needed."
+                : "This shop has no email on file. Please enter the customer's email to send the invoice."}
+            </p>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">

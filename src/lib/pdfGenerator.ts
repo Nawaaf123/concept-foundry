@@ -267,6 +267,10 @@ export const generateInvoicePDF = (invoice: InvoiceData, totalPaid: number, rema
   doc.text("Thank you for your business!", pageWidth / 2, footerY, { align: "center" });
   doc.text("MR FOG® Sales Manager", pageWidth / 2, footerY + 5, { align: "center" });
   
-  // Save PDF
+  return doc;
+};
+
+export const saveInvoicePDF = (invoice: InvoiceData, totalPaid: number, remainingAmount: number) => {
+  const doc = generateInvoicePDF(invoice, totalPaid, remainingAmount);
   doc.save(`${invoice.invoice_number}.pdf`);
 };

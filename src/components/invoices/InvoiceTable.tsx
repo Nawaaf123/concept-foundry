@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { PaymentDialog } from "./PaymentDialog";
-import { generateInvoicePDF } from "@/lib/pdfGenerator";
+import { generateInvoicePDF, saveInvoicePDF } from "@/lib/pdfGenerator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -191,7 +191,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
       const totalPaid = paymentsData?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
       const remainingAmount = Number(invoice.total_amount) - totalPaid;
 
-      generateInvoicePDF(
+      saveInvoicePDF(
         {
           ...invoice,
           items: items || [],
