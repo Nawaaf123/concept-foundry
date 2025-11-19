@@ -14,8 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 const Products = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string>("all");
+  const [filterValue, setFilterValue] = useState<string>("all");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -49,35 +48,38 @@ const Products = () => {
     },
   });
 
-  const categories = Array.from(
-    new Set(allProducts?.map(p => p.category).filter(Boolean) || [])
-  );
-
-  const subcategories = categoryFilter === "all"
-    ? Array.from(new Set(allProducts?.map(p => p.subcategory).filter(Boolean) || []))
-    : Array.from(
-        new Set(
-          allProducts
-            ?.filter(p => p.category === categoryFilter)
-            .map(p => p.subcategory)
-            .filter(Boolean) || []
-        )
-      );
+  // Group subcategories by category
+  const categoryGroups = allProducts?.reduce((acc, product) => {
+    if (!product.category) return acc;
+    
+    if (!acc[product.category]) {
+      acc[product.category] = new Set();
+    }
+    
+    if (product.subcategory) {
+      acc[product.category].add(product.subcategory);
+    }
+    
+    return acc;
+  }, {} as Record<string, Set<string>>) || {};
 
   const { data: products, isLoading, refetch } = useQuery({
-    queryKey: ["products", categoryFilter, subcategoryFilter],
+    queryKey: ["products", filterValue],
     queryFn: async () => {
       let query = supabase
         .from("products")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (categoryFilter !== "all") {
-        query = query.eq("category", categoryFilter);
-      }
-
-      if (subcategoryFilter !== "all") {
-        query = query.eq("subcategory", subcategoryFilter);
+      if (filterValue !== "all") {
+        // Check if it's a category-subcategory combination
+        if (filterValue.includes("|")) {
+          const [category, subcategory] = filterValue.split("|");
+          query = query.eq("category", category).eq("subcategory", subcategory);
+        } else {
+          // It's just a category
+          query = query.eq("category", filterValue);
+        }
       }
 
       const { data, error } = await query;
@@ -85,11 +87,6 @@ const Products = () => {
       return data;
     },
   });
-
-  const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value);
-    setSubcategoryFilter("all"); // Reset subcategory when category changes
-  };
 
   const handleAddProduct = () => {
     if (!isAdmin) {
@@ -140,34 +137,27 @@ const Products = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by category" />
+          <Select value={filterValue} onValueChange={setFilterValue}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Filter by category & subcategory" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories?.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select 
-            value={subcategoryFilter} 
-            onValueChange={setSubcategoryFilter}
-            disabled={categoryFilter === "all" && subcategories.length === 0}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by subcategory" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Subcategories</SelectItem>
-              {subcategories?.map((subcategory) => (
-                <SelectItem key={subcategory} value={subcategory}>
-                  {subcategory}
-                </SelectItem>
+              <SelectItem value="all">All Products</SelectItem>
+              {Object.keys(categoryGroups).sort().map((category) => (
+                <div key={category}>
+                  <SelectItem value={category} className="font-semibold">
+                    {category}
+                  </SelectItem>
+                  {Array.from(categoryGroups[category]).sort().map((subcategory) => (
+                    <SelectItem 
+                      key={`${category}|${subcategory}`} 
+                      value={`${category}|${subcategory}`}
+                      className="pl-8"
+                    >
+                      ↳ {subcategory}
+                    </SelectItem>
+                  ))}
+                </div>
               ))}
             </SelectContent>
           </Select>
