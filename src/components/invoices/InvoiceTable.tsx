@@ -46,9 +46,10 @@ interface InvoiceTableProps {
   onEdit: (invoice: any) => void;
   isAdmin: boolean;
   onRefetch: () => void;
+  profiles?: { id: string; full_name: string }[];
 }
 
-export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTableProps) => {
+export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }: InvoiceTableProps) => {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -274,7 +275,9 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                   </span>
                 </TableCell>
                 <TableCell>{getStatusBadge(invoice.payment_status)}</TableCell>
-                <TableCell>{invoice.profiles?.full_name || 'Unknown'}</TableCell>
+                <TableCell>
+                  {profiles?.find((p) => p.id === invoice.created_by)?.full_name ?? "Unknown"}
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                   <Button
