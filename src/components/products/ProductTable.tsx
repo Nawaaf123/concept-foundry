@@ -122,6 +122,7 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Subcategory</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Status</TableHead>
@@ -136,6 +137,9 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
                   <Badge variant="outline" className={getCategoryColor(product.category)}>
                     {product.category}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="text-muted-foreground">{product.subcategory || "-"}</span>
                 </TableCell>
                 <TableCell>${product.price.toFixed(2)}</TableCell>
                 <TableCell>
