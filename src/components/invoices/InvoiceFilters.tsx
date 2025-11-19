@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -7,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calendar, Filter } from "lucide-react";
+import { Calendar, Filter, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -15,6 +16,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Card } from "@/components/ui/card";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 interface InvoiceFiltersProps {
   searchQuery: string;
@@ -49,7 +59,10 @@ export const InvoiceFilters = ({
   shops,
   onClearFilters,
 }: InvoiceFiltersProps) => {
+  const [shopComboOpen, setShopComboOpen] = useState(false);
   const hasActiveFilters = searchQuery || statusFilter !== "all" || shopFilter !== "all" || dateFrom || dateTo || sortBy !== "date_desc";
+  
+  const selectedShop = shops?.find((shop) => shop.id === shopFilter);
 
   return (
     <Card className="p-4">
@@ -97,19 +110,64 @@ export const InvoiceFilters = ({
           {/* Shop Filter */}
           <div className="space-y-2">
             <Label htmlFor="shop">Shop</Label>
-            <Select value={shopFilter} onValueChange={onShopChange}>
-              <SelectTrigger id="shop">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Shops</SelectItem>
-                {shops?.map((shop) => (
-                  <SelectItem key={shop.id} value={shop.id}>
-                    {shop.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={shopComboOpen} onOpenChange={setShopComboOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={shopComboOpen}
+                  className="w-full justify-between"
+                >
+                  {shopFilter === "all" 
+                    ? "All Shops" 
+                    : selectedShop?.name || "Select shop..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search shops..." />
+                  <CommandList>
+                    <CommandEmpty>No shop found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="all"
+                        onSelect={() => {
+                          onShopChange("all");
+                          setShopComboOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            shopFilter === "all" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        All Shops
+                      </CommandItem>
+                      {shops?.map((shop) => (
+                        <CommandItem
+                          key={shop.id}
+                          value={shop.name}
+                          onSelect={() => {
+                            onShopChange(shop.id);
+                            setShopComboOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              shopFilter === shop.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {shop.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Sort By */}
