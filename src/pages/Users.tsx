@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
 import {
   Table,
   TableBody,
@@ -26,15 +27,30 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { Shield, User } from "lucide-react";
+import { Shield, User, UserPlus } from "lucide-react";
 import { format } from "date-fns";
+
+const createUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+});
 
 const Users = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState<"admin" | "sales">("sales");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    fullName: "",
+    role: "sales" as "admin" | "sales"
+  });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
@@ -74,6 +90,50 @@ const Users = () => {
         ...profile,
         role: roles.find((r) => r.user_id === profile.id)?.role || "sales",
       }));
+    },
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: async (data: { email: string; password: string; fullName: string; role: "admin" | "sales" }) => {
+      // Create user account using admin endpoint
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName
+          }
+        }
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Failed to create user");
+
+      // Assign role
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({ user_id: authData.user.id, role: data.role });
+
+      if (roleError) throw roleError;
+
+      return authData.user;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({
+        title: "Success",
+        description: "User created successfully",
+      });
+      setCreateUserDialogOpen(false);
+      setFormData({ email: "", password: "", fullName: "", role: "sales" });
+      setFormErrors({});
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
     },
   });
 
@@ -124,6 +184,34 @@ const Users = () => {
     setRoleDialogOpen(true);
   };
 
+  const handleCreateUser = () => {
+    try {
+      setFormErrors({});
+      const validatedData = createUserSchema.parse({
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+      });
+      
+      createUserMutation.mutate({
+        email: validatedData.email,
+        password: validatedData.password,
+        fullName: validatedData.fullName,
+        role: formData.role
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            errors[err.path[0].toString()] = err.message;
+          }
+        });
+        setFormErrors(errors);
+      }
+    }
+  };
+
   const getRoleBadge = (role: string) => {
     return role === "admin" ? (
       <Badge className="flex items-center gap-1 w-fit">
@@ -153,9 +241,15 @@ const Users = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
-          <p className="text-muted-foreground">Manage user accounts and roles</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
+            <p className="text-muted-foreground">Manage user accounts and roles</p>
+          </div>
+          <Button onClick={() => setCreateUserDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Create User
+          </Button>
         </div>
 
         {isLoading ? (
@@ -262,6 +356,98 @@ const Users = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                placeholder="Enter full name"
+              />
+              {formErrors.fullName && (
+                <p className="text-sm text-destructive">{formErrors.fullName}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="Enter email address"
+              />
+              {formErrors.email && (
+                <p className="text-sm text-destructive">{formErrors.email}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Enter password (min 6 characters)"
+              />
+              {formErrors.password && (
+                <p className="text-sm text-destructive">{formErrors.password}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="userRole">Role</Label>
+              <Select 
+                value={formData.role} 
+                onValueChange={(value: "admin" | "sales") => setFormData({ ...formData, role: value })}
+              >
+                <SelectTrigger id="userRole">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sales">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Sales
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Admin
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setCreateUserDialogOpen(false);
+                  setFormData({ email: "", password: "", fullName: "", role: "sales" });
+                  setFormErrors({});
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateUser}
+                disabled={createUserMutation.isPending}
+              >
+                {createUserMutation.isPending ? "Creating..." : "Create User"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
