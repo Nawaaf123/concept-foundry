@@ -18,8 +18,8 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .single();
-      return data?.role;
+        .maybeSingle();
+      return data?.role || null;
     },
     enabled: !!user?.id,
   });

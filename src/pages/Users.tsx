@@ -60,13 +60,15 @@ const Users = () => {
   const { data: currentUserRole } = useQuery({
     queryKey: ["currentUserRole"],
     queryFn: async () => {
+      if (!currentUser?.id) return null;
       const { data } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", currentUser?.id)
-        .single();
-      return data?.role;
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+      return data?.role || null;
     },
+    enabled: !!currentUser?.id,
   });
 
   // Redirect non-admin users
