@@ -39,6 +39,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [cashAmount, setCashAmount] = useState("");
   const [checkAmount, setCheckAmount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: shops } = useQuery({
     queryKey: ["shops"],
@@ -122,6 +123,12 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (isSubmitting) {
+        throw new Error("Please wait, invoice is being created");
+      }
+
+      setIsSubmitting(true);
+
       if (!shopId || items.length === 0) {
         throw new Error("Please select a shop and add at least one product");
       }
@@ -235,6 +242,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       return invoiceData;
     },
     onSuccess: () => {
+      setIsSubmitting(false);
       toast({
         title: "Success",
         description: "Invoice created successfully",
@@ -242,6 +250,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       onSuccess();
     },
     onError: (error: any) => {
+      setIsSubmitting(false);
       toast({
         title: "Error",
         description: error.message || "Failed to create invoice",
@@ -485,11 +494,11 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Creating..." : "Create Invoice"}
+        <Button type="submit" disabled={mutation.isPending || isSubmitting}>
+          {mutation.isPending || isSubmitting ? "Creating..." : "Create Invoice"}
         </Button>
       </div>
     </form>
