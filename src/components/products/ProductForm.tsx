@@ -26,6 +26,7 @@ const productSchema = z.object({
   name: z.string().trim().min(1, "Product name is required").max(100, "Name must be less than 100 characters"),
   price: z.coerce.number().min(0.01, "Price must be greater than 0"),
   category: z.string().trim().min(1, "Category is required").max(50, "Category must be less than 50 characters"),
+  subcategory: z.string().trim().min(1, "Subcategory is required").max(50, "Subcategory must be less than 50 characters"),
   stock_quantity: z.coerce.number().int().min(0, "Stock must be 0 or greater"),
   low_stock_threshold: z.coerce.number().int().min(0, "Threshold must be 0 or greater"),
   image_url: z.string().url("Invalid URL").optional().or(z.literal("")),
@@ -48,6 +49,7 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
       name: product?.name || "",
       price: product?.price || 0,
       category: product?.category || "",
+      subcategory: product?.subcategory || "",
       stock_quantity: product?.stock_quantity || 0,
       low_stock_threshold: product?.low_stock_threshold || 10,
       image_url: product?.image_url || "",
@@ -60,6 +62,7 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         name: values.name,
         price: values.price,
         category: values.category,
+        subcategory: values.subcategory,
         stock_quantity: values.stock_quantity,
         low_stock_threshold: values.low_stock_threshold,
         image_url: values.image_url || null,
@@ -138,19 +141,23 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Disposable Vapes">Disposable Vapes</SelectItem>
-                  <SelectItem value="E-Liquids">E-Liquids</SelectItem>
-                  <SelectItem value="Pod Systems">Pod Systems</SelectItem>
-                  <SelectItem value="Accessories">Accessories</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Input placeholder="Enter category" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="subcategory"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Subcategory</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter subcategory" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
