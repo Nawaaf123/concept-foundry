@@ -47,6 +47,29 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch all payments for all invoices to calculate pending amounts
+  const { data: allPayments } = useQuery({
+    queryKey: ["all-invoice-payments", invoices.map(inv => inv.id)],
+    queryFn: async () => {
+      if (!invoices || invoices.length === 0) return [];
+      const invoiceIds = invoices.map(inv => inv.id);
+      const { data, error } = await supabase
+        .from("payments")
+        .select("invoice_id, amount")
+        .in("invoice_id", invoiceIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: invoices && invoices.length > 0,
+  });
+
+  // Calculate pending amount for an invoice
+  const getPendingAmount = (invoiceId: string, totalAmount: number) => {
+    const invoicePayments = allPayments?.filter(p => p.invoice_id === invoiceId) || [];
+    const totalPaid = invoicePayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    return totalAmount - totalPaid;
+  };
+
   const { data: payments } = useQuery({
     queryKey: ["payments", selectedInvoice?.id],
     queryFn: async () => {
@@ -188,12 +211,15 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
               <TableHead>Shop</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Pending</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((invoice) => (
+            {invoices.map((invoice) => {
+              const pendingAmount = getPendingAmount(invoice.id, Number(invoice.total_amount));
+              return (
               <TableRow key={invoice.id}>
                 <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                 <TableCell>{invoice.shops?.name}</TableCell>
@@ -202,6 +228,11 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                 </TableCell>
                 <TableCell className="font-semibold">
                   ${parseFloat(invoice.total_amount).toFixed(2)}
+                </TableCell>
+                <TableCell>
+                  <span className={`font-semibold ${pendingAmount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                    ${pendingAmount.toFixed(2)}
+                  </span>
                 </TableCell>
                 <TableCell>{getStatusBadge(invoice.payment_status)}</TableCell>
                 <TableCell className="text-right">
@@ -244,7 +275,8 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>
