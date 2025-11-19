@@ -251,6 +251,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
               <TableHead>Amount</TableHead>
               <TableHead>Pending</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Created By</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -273,6 +274,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch }: InvoiceTa
                   </span>
                 </TableCell>
                 <TableCell>{getStatusBadge(invoice.payment_status)}</TableCell>
+                <TableCell>{invoice.profiles?.full_name || 'Unknown'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                   <Button
