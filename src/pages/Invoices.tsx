@@ -75,7 +75,11 @@ const Invoices = () => {
           shops (
             name,
             owner_name,
-            phone
+            phone,
+            street_address,
+            city,
+            state,
+            zip_code
           )
         `);
 
