@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Package, ShoppingBag, FileText, Users, LayoutDashboard, BarChart3 } from "lucide-react";
+import { LogOut, Package, ShoppingBag, FileText, Users, LayoutDashboard, BarChart3, TrendingUp } from "lucide-react";
 import mrFogLogo from "@/assets/mr-fog-logo.jpg";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
     { icon: BarChart3, label: "Analytics", path: "/analytics" },
     { icon: ShoppingBag, label: "Shops", path: "/shops" },
     { icon: FileText, label: "Invoices", path: "/invoices" },
+    { icon: TrendingUp, label: "Sales Performance", path: "/sales-performance", adminOnly: true },
     { icon: Users, label: "Users", path: "/users", adminOnly: true },
   ];
 
