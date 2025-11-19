@@ -84,12 +84,10 @@ const Invoices = () => {
 
       // Date range filter
       if (dateFrom) {
-        query = query.gte("created_at", new Date(dateFrom).toISOString());
+        query = query.gte("created_at", `${dateFrom}T00:00:00`);
       }
       if (dateTo) {
-        const endDate = new Date(dateTo);
-        endDate.setHours(23, 59, 59, 999);
-        query = query.lte("created_at", endDate.toISOString());
+        query = query.lte("created_at", `${dateTo}T23:59:59.999`);
       }
 
       // Sorting
