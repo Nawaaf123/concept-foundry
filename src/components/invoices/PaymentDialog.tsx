@@ -100,6 +100,7 @@ export const PaymentDialog = ({
       });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["all-invoice-payments"] });
       onOpenChange(false);
       setAmount("");
       setCheckNumber("");
