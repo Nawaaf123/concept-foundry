@@ -63,10 +63,15 @@ export const exportInvoicesToExcel = async () => {
         .reduce((sum, p) => sum + Number(p.amount), 0);
       
       const creator = profiles?.find(p => p.id === invoice.created_by);
+      const location = [
+        invoice.shops?.city,
+        invoice.shops?.state,
+      ].filter(Boolean).join(', ') || 'N/A';
 
       return {
         'Invoice Number': invoice.invoice_number,
         'Shop Name': invoice.shops?.name || 'N/A',
+        'Location': location,
         'Owner Name': invoice.shops?.owner_name || 'N/A',
         'Phone': invoice.shops?.phone || 'N/A',
         'Email': invoice.shops?.email || 'N/A',
