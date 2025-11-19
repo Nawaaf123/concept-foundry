@@ -23,6 +23,13 @@ export const exportInvoicesToExcel = async () => {
 
     if (invoicesError) throw invoicesError;
 
+    // Fetch all profiles for creator names
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, full_name');
+
+    if (profilesError) throw profilesError;
+
     if (!invoices || invoices.length === 0) {
       throw new Error('No invoices found to export');
     }
@@ -54,6 +61,8 @@ export const exportInvoicesToExcel = async () => {
       const checkPaid = payments
         .filter(p => p.payment_method === 'check')
         .reduce((sum, p) => sum + Number(p.amount), 0);
+      
+      const creator = profiles?.find(p => p.id === invoice.created_by);
 
       return {
         'Invoice Number': invoice.invoice_number,
@@ -62,6 +71,7 @@ export const exportInvoicesToExcel = async () => {
         'Phone': invoice.shops?.phone || 'N/A',
         'Email': invoice.shops?.email || 'N/A',
         'Date': new Date(invoice.created_at).toLocaleDateString(),
+        'Created By': creator?.full_name || 'Unknown',
         'Total Amount': Number(invoice.total_amount).toFixed(2),
         'Payment Status': invoice.payment_status.toUpperCase(),
         'Total Paid': totalPaid.toFixed(2),
