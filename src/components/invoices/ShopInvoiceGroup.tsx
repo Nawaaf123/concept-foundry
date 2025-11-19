@@ -41,7 +41,7 @@ export const ShopInvoiceGroup = ({
   isAdmin,
   profiles,
 }: ShopInvoiceGroupProps) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const getPendingAmount = (invoiceId: string, totalAmount: number) => {
     const invoicePayments = allPayments?.filter(p => p.invoice_id === invoiceId) || [];
