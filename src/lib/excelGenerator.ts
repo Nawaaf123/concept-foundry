@@ -66,6 +66,7 @@ export const exportInvoicesToExcel = async () => {
       const location = [
         invoice.shops?.city,
         invoice.shops?.state,
+        invoice.shops?.zip_code,
       ].filter(Boolean).join(', ') || 'N/A';
 
       return {
