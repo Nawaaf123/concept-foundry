@@ -3,24 +3,43 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, Package, ShoppingBag, FileText, Users, LayoutDashboard, BarChart3 } from "lucide-react";
 import mrFogLogo from "@/assets/mr-fog-logo.jpg";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+
+  const { data: userRole } = useQuery({
+    queryKey: ["userRole", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+      return data?.role;
+    },
+    enabled: !!user?.id,
+  });
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth");
   };
 
-  const navItems = [
+  const allNavItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Package, label: "Products", path: "/products" },
     { icon: BarChart3, label: "Analytics", path: "/analytics" },
     { icon: ShoppingBag, label: "Shops", path: "/shops" },
     { icon: FileText, label: "Invoices", path: "/invoices" },
-    { icon: Users, label: "Users", path: "/users" },
+    { icon: Users, label: "Users", path: "/users", adminOnly: true },
   ];
+
+  // Filter nav items based on user role
+  const navItems = allNavItems.filter(item => !item.adminOnly || userRole === "admin");
 
   return (
     <div className="min-h-screen bg-background">
