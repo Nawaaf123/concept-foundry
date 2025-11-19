@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
@@ -54,6 +55,7 @@ const Users = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const { data: currentUserRole } = useQuery({
     queryKey: ["currentUserRole"],
@@ -66,6 +68,12 @@ const Users = () => {
       return data?.role;
     },
   });
+
+  // Redirect non-admin users
+  if (currentUserRole && currentUserRole !== "admin") {
+    navigate("/dashboard");
+    return null;
+  }
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
