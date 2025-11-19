@@ -20,7 +20,7 @@ const SalesPerformance = () => {
         .select("role")
         .eq("user_id", user.id)
         .maybeSingle();
-      return data?.role;
+      return data?.role || null;
     },
     enabled: !!user?.id,
   });
