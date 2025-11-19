@@ -34,6 +34,8 @@ interface ProductTableProps {
 export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [inventoryProduct, setInventoryProduct] = useState<any>(null);
+  const [editingCell, setEditingCell] = useState<{ id: string; field: 'price' | 'stock' } | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -84,6 +86,64 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
       setDeleteId(null);
     },
   });
+
+  const updateFieldMutation = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: 'price' | 'stock_quantity'; value: number }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({ [field]: value })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({
+        title: "Success",
+        description: "Product updated successfully",
+      });
+      setEditingCell(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update product",
+        variant: "destructive",
+      });
+      setEditingCell(null);
+    },
+  });
+
+  const handleCellClick = (productId: string, field: 'price' | 'stock', currentValue: number) => {
+    if (!isAdmin) return;
+    setEditingCell({ id: productId, field });
+    setEditValue(currentValue.toString());
+  };
+
+  const handleCellBlur = () => {
+    if (!editingCell) return;
+    
+    const numValue = parseFloat(editValue);
+    if (isNaN(numValue) || numValue < 0) {
+      toast({
+        title: "Invalid value",
+        description: "Please enter a valid positive number",
+        variant: "destructive",
+      });
+      setEditingCell(null);
+      return;
+    }
+
+    const field = editingCell.field === 'price' ? 'price' : 'stock_quantity';
+    updateFieldMutation.mutate({ id: editingCell.id, field, value: numValue });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleCellBlur();
+    } else if (e.key === 'Escape') {
+      setEditingCell(null);
+    }
+  };
 
   const getCategoryColor = (category: string) => {
     const hash = category.split('').reduce((acc, char) => {
@@ -141,16 +201,53 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
                 <TableCell>
                   <span className="text-muted-foreground">{product.subcategory || "-"}</span>
                 </TableCell>
-                <TableCell>${product.price.toFixed(2)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span className={product.stock_quantity <= product.low_stock_threshold ? "text-destructive font-semibold" : ""}>
-                      {product.stock_quantity}
-                    </span>
-                    {product.stock_quantity <= product.low_stock_threshold && (
-                      <Badge variant="destructive" className="text-xs">Low</Badge>
-                    )}
-                  </div>
+                <TableCell 
+                  className={isAdmin ? "cursor-pointer hover:bg-muted/50" : ""}
+                  onClick={() => handleCellClick(product.id, 'price', product.price)}
+                  title={isAdmin ? "Click to edit price" : ""}
+                >
+                  {editingCell?.id === product.id && editingCell?.field === 'price' ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleCellBlur}
+                      onKeyDown={handleKeyDown}
+                      autoFocus
+                      className="w-20 px-2 py-1 border rounded"
+                    />
+                  ) : (
+                    `$${product.price.toFixed(2)}`
+                  )}
+                </TableCell>
+                <TableCell 
+                  className={isAdmin ? "cursor-pointer hover:bg-muted/50" : ""}
+                  onClick={() => handleCellClick(product.id, 'stock', product.stock_quantity)}
+                  title={isAdmin ? "Click to edit stock" : ""}
+                >
+                  {editingCell?.id === product.id && editingCell?.field === 'stock' ? (
+                    <input
+                      type="number"
+                      min="0"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleCellBlur}
+                      onKeyDown={handleKeyDown}
+                      autoFocus
+                      className="w-20 px-2 py-1 border rounded"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className={product.stock_quantity <= product.low_stock_threshold ? "text-destructive font-semibold" : ""}>
+                        {product.stock_quantity}
+                      </span>
+                      {product.stock_quantity <= product.low_stock_threshold && (
+                        <Badge variant="destructive" className="text-xs">Low</Badge>
+                      )}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   {isAdmin ? (
