@@ -248,6 +248,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
             <TableRow>
               <TableHead>Invoice #</TableHead>
               <TableHead>Shop</TableHead>
+              <TableHead>Location</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Pending</TableHead>
@@ -263,6 +264,12 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
               <TableRow key={invoice.id}>
                 <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                 <TableCell>{invoice.shops?.name}</TableCell>
+                <TableCell>
+                  {[
+                    invoice.shops?.city,
+                    invoice.shops?.state,
+                  ].filter(Boolean).join(", ") || "N/A"}
+                </TableCell>
                 <TableCell>
                   {new Date(invoice.created_at).toLocaleDateString()}
                 </TableCell>
