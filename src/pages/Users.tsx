@@ -243,13 +243,13 @@ const Users = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
-            <p className="text-muted-foreground">Manage user accounts and roles</p>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">User Management</h2>
+            <p className="text-sm md:text-base text-muted-foreground">Manage user accounts and roles</p>
           </div>
-          <Button onClick={() => setCreateUserDialogOpen(true)}>
+          <Button onClick={() => setCreateUserDialogOpen(true)} className="w-full sm:w-auto">
             <UserPlus className="h-4 w-4 mr-2" />
             Create User
           </Button>
@@ -260,41 +260,72 @@ const Users = () => {
             <p className="text-muted-foreground">Loading users...</p>
           </div>
         ) : users && users.length > 0 ? (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.full_name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
-                    <TableCell>
-                      {format(new Date(user.created_at), "MMM d, yyyy")}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleChangeRole(user)}
-                        disabled={user.id === currentUser?.id}
-                      >
-                        Change Role
-                      </Button>
-                    </TableCell>
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+              {users.map((user) => (
+                <div key={user.id} className="border rounded-lg p-4 bg-card">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="font-semibold">{user.full_name}</p>
+                      <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                    {getRoleBadge(user.role)}
+                  </div>
+                  <div className="flex justify-between items-center mt-3 pt-3 border-t">
+                    <span className="text-xs text-muted-foreground">
+                      Joined {format(new Date(user.created_at), "MMM d, yyyy")}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleChangeRole(user)}
+                      disabled={user.id === currentUser?.id}
+                    >
+                      Change Role
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.full_name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{getRoleBadge(user.role)}</TableCell>
+                      <TableCell>
+                        {format(new Date(user.created_at), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleChangeRole(user)}
+                          disabled={user.id === currentUser?.id}
+                        >
+                          Change Role
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
             <User className="h-12 w-12 text-muted-foreground mb-4" />

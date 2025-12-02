@@ -126,23 +126,23 @@ const Products = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Products</h2>
-            <p className="text-muted-foreground">Manage your product catalog</p>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Products</h2>
+            <p className="text-sm md:text-base text-muted-foreground">Manage your product catalog</p>
           </div>
           {isAdmin && (
-            <Button onClick={handleAddProduct}>
+            <Button onClick={handleAddProduct} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Add Product
             </Button>
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
@@ -160,7 +160,7 @@ const Products = () => {
             onValueChange={setSubcategoryFilter}
             disabled={categoryFilter === "all"}
           >
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Select subcategory" />
             </SelectTrigger>
             <SelectContent>
