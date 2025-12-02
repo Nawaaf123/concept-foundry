@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { InventoryDialog } from "./InventoryDialog";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ProductTableProps {
   products: any[];
@@ -176,7 +177,84 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
 
   return (
     <>
-      <div className="rounded-md border">
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {products.map((product) => (
+          <Card key={product.id}>
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-base">{product.name}</h3>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <Badge variant="outline" className={getCategoryColor(product.category)}>
+                      {product.category}
+                    </Badge>
+                    {product.subcategory && (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        {product.subcategory}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <Badge variant={product.is_active ? "default" : "secondary"}>
+                  {product.is_active ? "Active" : "Inactive"}
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                <div>
+                  <span className="text-muted-foreground">Price</span>
+                  <p className="font-semibold">${product.price.toFixed(2)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Stock</span>
+                  <div className="flex items-center gap-1">
+                    <span className={product.stock_quantity <= product.low_stock_threshold ? "text-destructive font-semibold" : "font-semibold"}>
+                      {product.stock_quantity}
+                    </span>
+                    {product.stock_quantity <= product.low_stock_threshold && (
+                      <Badge variant="destructive" className="text-xs">Low</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {isAdmin && (
+                <div className="flex gap-2 pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setInventoryProduct(product)}
+                  >
+                    <Package className="h-4 w-4 mr-1" />
+                    Inventory
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => onEdit(product)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDeleteId(product.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>

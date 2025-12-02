@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Eye, Edit, Download, Trash2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ShopInvoiceGroupProps {
   shopName: string;
@@ -77,13 +78,13 @@ export const ShopInvoiceGroup = ({
   return (
     <div className="border rounded-lg mb-4">
       {/* Shop Header */}
-      <div className="bg-muted p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="bg-muted p-3 md:p-4">
+        <div className="flex items-start gap-2 md:gap-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 flex-shrink-0"
           >
             {isExpanded ? (
               <ChevronDown className="h-4 w-4" />
@@ -91,130 +92,197 @@ export const ShopInvoiceGroup = ({
               <ChevronRight className="h-4 w-4" />
             )}
           </Button>
-          <div>
-            <h3 className="font-semibold text-lg">{shopName}</h3>
-            <p className="text-sm text-muted-foreground">{shopLocation}</p>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-base md:text-lg truncate">{shopName}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground truncate">{shopLocation}</p>
+                <Badge variant="outline" className="mt-1">
+                  {invoices.length} invoice(s)
+                </Badge>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-3 md:gap-4">
+                <div className="text-left sm:text-right">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-lg md:text-xl font-bold">${totalAmount.toFixed(2)}</p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                  <p className={`text-lg md:text-xl font-bold ${totalPending > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                    ${totalPending.toFixed(2)}
+                  </p>
+                </div>
+                {totalPending > 0 && (
+                  <Button
+                    onClick={() => onDistributePayment(shopName, invoicesWithPending, totalPending)}
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    Pay
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
-          <Badge variant="outline" className="ml-2">
-            {invoices.length} invoice(s)
-          </Badge>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Total Amount</p>
-            <p className="text-xl font-bold">${totalAmount.toFixed(2)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Total Pending</p>
-            <p className={`text-xl font-bold ${totalPending > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-              ${totalPending.toFixed(2)}
-            </p>
-          </div>
-          {totalPending > 0 && (
-            <Button
-              onClick={() => onDistributePayment(shopName, invoicesWithPending, totalPending)}
-              size="sm"
-            >
-              <DollarSign className="h-4 w-4 mr-2" />
-              Pay Total
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* Invoices Table */}
+      {/* Invoices - Mobile Cards */}
       {isExpanded && (
-        <div className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Pending</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created By</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((invoice) => {
-                const pendingAmount = getPendingAmount(invoice.id, Number(invoice.total_amount));
-                return (
-                  <TableRow key={invoice.id}>
-                    <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                    <TableCell>
-                      {new Date(invoice.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="font-semibold">
-                      ${parseFloat(invoice.total_amount).toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`font-semibold ${pendingAmount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                        ${pendingAmount.toFixed(2)}
-                      </span>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(invoice.payment_status)}</TableCell>
-                    <TableCell>
-                      {profiles?.find((p) => p.id === invoice.created_by)?.full_name ?? "Unknown"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onViewInvoice(invoice)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {invoice.payment_status !== "paid" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onRecordPayment(invoice)}
-                            title="Record Payment"
-                          >
-                            <DollarSign className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {isAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onUpdateStatus(invoice)}
-                            title="Update Status"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onExportPDF(invoice)}
-                          title="Export PDF"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        {isAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onDeleteInvoice(invoice)}
-                            title="Delete Invoice"
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
+        <>
+          <div className="md:hidden p-3 space-y-3">
+            {invoices.map((invoice) => {
+              const pendingAmount = getPendingAmount(invoice.id, Number(invoice.total_amount));
+              return (
+                <Card key={invoice.id}>
+                  <CardContent className="p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-semibold">{invoice.invoice_number}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(invoice.created_at).toLocaleDateString()}
+                        </p>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                      {getStatusBadge(invoice.payment_status)}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                      <div>
+                        <span className="text-muted-foreground">Amount</span>
+                        <p className="font-semibold">${parseFloat(invoice.total_amount).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Pending</span>
+                        <p className={`font-semibold ${pendingAmount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                          ${pendingAmount.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-1 border-t pt-2">
+                      <Button variant="outline" size="sm" onClick={() => onViewInvoice(invoice)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {invoice.payment_status !== "paid" && (
+                        <Button variant="outline" size="sm" onClick={() => onRecordPayment(invoice)}>
+                          <DollarSign className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {isAdmin && (
+                        <Button variant="outline" size="sm" onClick={() => onUpdateStatus(invoice)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" onClick={() => onExportPDF(invoice)}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      {isAdmin && (
+                        <Button variant="outline" size="sm" onClick={() => onDeleteInvoice(invoice)} className="text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Invoices - Desktop Table */}
+          <div className="hidden md:block overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Invoice #</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Pending</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created By</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((invoice) => {
+                  const pendingAmount = getPendingAmount(invoice.id, Number(invoice.total_amount));
+                  return (
+                    <TableRow key={invoice.id}>
+                      <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                      <TableCell>
+                        {new Date(invoice.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        ${parseFloat(invoice.total_amount).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`font-semibold ${pendingAmount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                          ${pendingAmount.toFixed(2)}
+                        </span>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(invoice.payment_status)}</TableCell>
+                      <TableCell>
+                        {profiles?.find((p) => p.id === invoice.created_by)?.full_name ?? "Unknown"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onViewInvoice(invoice)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {invoice.payment_status !== "paid" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onRecordPayment(invoice)}
+                              title="Record Payment"
+                            >
+                              <DollarSign className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onUpdateStatus(invoice)}
+                              title="Update Status"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onExportPDF(invoice)}
+                            title="Export PDF"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onDeleteInvoice(invoice)}
+                              title="Delete Invoice"
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );

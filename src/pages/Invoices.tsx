@@ -175,22 +175,23 @@ const Invoices = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Invoices</h2>
-            <p className="text-muted-foreground">Create and manage sales invoices</p>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Invoices</h2>
+            <p className="text-sm md:text-base text-muted-foreground">Create and manage sales invoices</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button 
               variant="outline" 
               onClick={handleExportToExcel}
               disabled={isExporting || !invoices || invoices.length === 0}
+              className="w-full sm:w-auto"
             >
               <FileDown className="mr-2 h-4 w-4" />
-              {isExporting ? "Exporting..." : "Export to Excel"}
+              {isExporting ? "Exporting..." : "Export"}
             </Button>
-            <Button onClick={handleAddInvoice}>
+            <Button onClick={handleAddInvoice} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Create Invoice
             </Button>

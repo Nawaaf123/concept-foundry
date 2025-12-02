@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ShopTableProps {
   shops: any[];
@@ -72,7 +73,77 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
 
   return (
     <>
-      <div className="rounded-md border">
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {shops.map((shop) => (
+          <Card key={shop.id}>
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h3 className="font-semibold text-base">{shop.name}</h3>
+                  {shop.owner_name && (
+                    <p className="text-sm text-muted-foreground">{shop.owner_name}</p>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onEdit(shop)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setDeleteId(shop.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                {shop.phone && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Phone className="h-4 w-4 flex-shrink-0" />
+                    <a href={`tel:${shop.phone}`} className="hover:text-primary">
+                      {shop.phone}
+                    </a>
+                  </div>
+                )}
+                {shop.email && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Mail className="h-4 w-4 flex-shrink-0" />
+                    <a href={`mailto:${shop.email}`} className="hover:text-primary truncate">
+                      {shop.email}
+                    </a>
+                  </div>
+                )}
+                {(shop.street_address || shop.city || shop.state) && (
+                  <div className="flex items-start gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      {shop.street_address && <div>{shop.street_address}</div>}
+                      {shop.street_address_line_2 && <div>{shop.street_address_line_2}</div>}
+                      {(shop.city || shop.state || shop.zip_code) && (
+                        <div>{[shop.city, shop.state, shop.zip_code].filter(Boolean).join(", ")}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>

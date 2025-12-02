@@ -98,12 +98,12 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
             {isAdmin ? "Dashboard" : "My Sales Dashboard"}
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             {isAdmin 
               ? "Overview of your sales and business metrics" 
               : "Your personal sales performance and metrics"}
@@ -111,7 +111,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Total Products"
             value={isLoading ? "..." : stats?.productsCount || 0}
@@ -139,7 +139,7 @@ const Dashboard = () => {
         </div>
 
         {/* Secondary Stats */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -180,12 +180,12 @@ const Dashboard = () => {
         <PendingPayments userId={user?.id} isAdmin={isAdmin} />
 
         {/* Charts and Lists Grid */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-2">
           <TopProducts />
           <TopShops userId={user?.id} isAdmin={isAdmin} />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-2">
           <LowStockAlert />
           <RecentActivity userId={user?.id} isAdmin={isAdmin} />
         </div>
