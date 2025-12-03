@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, DollarSign, Download, Trash2 } from "lucide-react";
+import { Eye, Edit, DollarSign, Download, Trash2, Mail, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
   const [selectedShopName, setSelectedShopName] = useState("");
   const [selectedShopPending, setSelectedShopPending] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState("");
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -221,6 +222,79 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
     }
   };
 
+  const handleSendEmail = async (invoice: any) => {
+    // Check if shop has email
+    if (!invoice.shops?.email) {
+      toast({
+        title: "No Email",
+        description: "This shop doesn't have an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingEmailId(invoice.id);
+    
+    try {
+      // Fetch invoice items
+      const { data: items } = await supabase
+        .from("invoice_items")
+        .select("*")
+        .eq("invoice_id", invoice.id);
+
+      // Fetch payments
+      const { data: paymentsData } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("invoice_id", invoice.id)
+        .order("payment_date", { ascending: false });
+
+      const totalPaid = paymentsData?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+      const remainingAmount = Number(invoice.total_amount) - totalPaid;
+
+      // Generate PDF
+      const doc = generateInvoicePDF(
+        {
+          ...invoice,
+          items: items || [],
+          payments: paymentsData || [],
+        },
+        totalPaid,
+        remainingAmount
+      );
+
+      // Convert to base64
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+      // Send email via edge function
+      const { data, error } = await supabase.functions.invoke('send-invoice-email', {
+        body: {
+          to: invoice.shops.email,
+          invoiceNumber: invoice.invoice_number,
+          shopName: invoice.shops.name,
+          totalAmount: Number(invoice.total_amount),
+          pdfBase64,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email Sent",
+        description: `Invoice sent to ${invoice.shops.email}`,
+      });
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
       paid: "default",
@@ -289,6 +363,8 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
               onRecordPayment={handleRecordPayment}
               onUpdateStatus={handleUpdateStatus}
               onExportPDF={handleExportPDF}
+              onSendEmail={handleSendEmail}
+              sendingEmailId={sendingEmailId}
               onDeleteInvoice={(invoice) => {
                 setSelectedInvoice(invoice);
                 setDeleteDialogOpen(true);
