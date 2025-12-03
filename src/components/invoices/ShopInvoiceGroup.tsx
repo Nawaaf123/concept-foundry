@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Edit, Download, Trash2 } from "lucide-react";
+import { Eye, Edit, Download, Trash2, Mail, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ShopInvoiceGroupProps {
@@ -22,6 +22,8 @@ interface ShopInvoiceGroupProps {
   onRecordPayment: (invoice: any) => void;
   onUpdateStatus: (invoice: any) => void;
   onExportPDF: (invoice: any) => void;
+  onSendEmail: (invoice: any) => void;
+  sendingEmailId: string | null;
   onDeleteInvoice: (invoice: any) => void;
   onDistributePayment: (shopName: string, invoices: any[], totalPending: number) => void;
   isAdmin: boolean;
@@ -37,6 +39,8 @@ export const ShopInvoiceGroup = ({
   onRecordPayment,
   onUpdateStatus,
   onExportPDF,
+  onSendEmail,
+  sendingEmailId,
   onDeleteInvoice,
   onDistributePayment,
   isAdmin,
@@ -179,6 +183,18 @@ export const ShopInvoiceGroup = ({
                       <Button variant="outline" size="sm" onClick={() => onExportPDF(invoice)}>
                         <Download className="h-4 w-4" />
                       </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => onSendEmail(invoice)}
+                        disabled={sendingEmailId === invoice.id}
+                      >
+                        {sendingEmailId === invoice.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Mail className="h-4 w-4" />
+                        )}
+                      </Button>
                       {isAdmin && (
                         <Button variant="outline" size="sm" onClick={() => onDeleteInvoice(invoice)} className="text-destructive">
                           <Trash2 className="h-4 w-4" />
@@ -262,6 +278,19 @@ export const ShopInvoiceGroup = ({
                             title="Export PDF"
                           >
                             <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onSendEmail(invoice)}
+                            title="Send Email"
+                            disabled={sendingEmailId === invoice.id}
+                          >
+                            {sendingEmailId === invoice.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Mail className="h-4 w-4" />
+                            )}
                           </Button>
                           {isAdmin && (
                             <Button
