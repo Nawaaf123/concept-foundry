@@ -16,6 +16,7 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>("all");
+  const [subSubcategoryFilter, setSubSubcategoryFilter] = useState<string>("all");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -41,7 +42,7 @@ const Products = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("category, subcategory")
+        .select("category, subcategory, sub_subcategory")
         .order("category");
       
       if (error) throw error;
@@ -65,13 +66,31 @@ const Products = () => {
         )
       );
 
+  // Get sub-subcategories filtered by selected subcategory
+  const subSubcategories = subcategoryFilter === "all"
+    ? []
+    : Array.from(
+        new Set(
+          allProducts
+            ?.filter(p => p.category === categoryFilter && p.subcategory === subcategoryFilter)
+            .map(p => p.sub_subcategory)
+            .filter(Boolean) || []
+        )
+      );
+
   const handleCategoryChange = (value: string) => {
     setCategoryFilter(value);
-    setSubcategoryFilter("all"); // Reset subcategory when category changes
+    setSubcategoryFilter("all");
+    setSubSubcategoryFilter("all");
+  };
+
+  const handleSubcategoryChange = (value: string) => {
+    setSubcategoryFilter(value);
+    setSubSubcategoryFilter("all");
   };
 
   const { data: products, isLoading, refetch } = useQuery({
-    queryKey: ["products", categoryFilter, subcategoryFilter],
+    queryKey: ["products", categoryFilter, subcategoryFilter, subSubcategoryFilter],
     queryFn: async () => {
       let query = supabase
         .from("products")
@@ -84,6 +103,10 @@ const Products = () => {
 
       if (subcategoryFilter !== "all") {
         query = query.eq("subcategory", subcategoryFilter);
+      }
+
+      if (subSubcategoryFilter !== "all") {
+        query = query.eq("sub_subcategory", subSubcategoryFilter);
       }
 
       const { data, error } = await query;
@@ -157,7 +180,7 @@ const Products = () => {
 
           <Select 
             value={subcategoryFilter} 
-            onValueChange={setSubcategoryFilter}
+            onValueChange={handleSubcategoryChange}
             disabled={categoryFilter === "all"}
           >
             <SelectTrigger className="w-full sm:w-[200px]">
@@ -168,6 +191,24 @@ const Products = () => {
               {subcategories?.map((subcategory) => (
                 <SelectItem key={subcategory} value={subcategory}>
                   {subcategory}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={subSubcategoryFilter} 
+            onValueChange={setSubSubcategoryFilter}
+            disabled={subcategoryFilter === "all"}
+          >
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Select sub-subcategory" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sub-subcategories</SelectItem>
+              {subSubcategories?.map((subSubcategory) => (
+                <SelectItem key={subSubcategory} value={subSubcategory}>
+                  {subSubcategory}
                 </SelectItem>
               ))}
             </SelectContent>

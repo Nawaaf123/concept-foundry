@@ -194,6 +194,11 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
                         {product.subcategory}
                       </Badge>
                     )}
+                    {product.sub_subcategory && (
+                      <Badge variant="outline" className="text-muted-foreground text-xs">
+                        {product.sub_subcategory}
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <Badge variant={product.is_active ? "default" : "secondary"}>
@@ -261,6 +266,7 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Subcategory</TableHead>
+              <TableHead>Sub-subcategory</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Status</TableHead>
@@ -278,6 +284,9 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
                 </TableCell>
                 <TableCell>
                   <span className="text-muted-foreground">{product.subcategory || "-"}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-muted-foreground">{product.sub_subcategory || "-"}</span>
                 </TableCell>
                 <TableCell 
                   className={isAdmin ? "cursor-pointer hover:bg-muted/50" : ""}
