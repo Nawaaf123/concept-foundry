@@ -16,12 +16,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, ChevronsUpDown, Check, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ShopForm } from "@/components/shops/ShopForm";
+import { cn } from "@/lib/utils";
 
 interface InvoiceFormProps {
   invoice?: any;
@@ -53,6 +67,12 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [checkAmount, setCheckAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddShopDialog, setShowAddShopDialog] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+
+  const getShopLocation = (shop: any) => {
+    const parts = [shop.city, shop.state].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : null;
+  };
 
   const { data: shops, refetch: refetchShops } = useQuery({
     queryKey: ["shops"],
@@ -353,18 +373,76 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         <div className="space-y-2">
           <Label htmlFor="shop">Shop *</Label>
           <div className="flex gap-2">
-            <Select value={shopId} onValueChange={setShopId} required>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Select a shop" />
-              </SelectTrigger>
-              <SelectContent>
-                {shops?.map((shop) => (
-                  <SelectItem key={shop.id} value={shop.id}>
-                    {shop.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={shopOpen} onOpenChange={setShopOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={shopOpen}
+                  className="flex-1 justify-between font-normal"
+                >
+                  {shopId ? (
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="truncate">
+                        {shops?.find((shop) => shop.id === shopId)?.name}
+                      </span>
+                      {(() => {
+                        const shop = shops?.find((s) => s.id === shopId);
+                        const location = shop ? getShopLocation(shop) : null;
+                        return location ? (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {location}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
+                  ) : (
+                    "Search or select a shop..."
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search shops by name or location..." />
+                  <CommandList>
+                    <CommandEmpty>No shop found.</CommandEmpty>
+                    <CommandGroup>
+                      {shops?.map((shop) => {
+                        const location = getShopLocation(shop);
+                        return (
+                          <CommandItem
+                            key={shop.id}
+                            value={`${shop.name} ${location || ""}`}
+                            onSelect={() => {
+                              setShopId(shop.id);
+                              setShopOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                shopId === shop.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{shop.name}</span>
+                              {location && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {location}
+                                </span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             <Button
               type="button"
               variant="outline"
