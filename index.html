@@ -16,6 +16,40 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@MRFOG" />
     <meta name="twitter:image" content="/mr-fog-logo.jpg" />
+
+    <!-- Critical CSS for initial render -->
+    <style>
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 240 10% 3.9%;
+        --muted-foreground: 240 3.8% 46.1%;
+        --card: 0 0% 100%;
+        --card-foreground: 240 10% 3.9%;
+        --primary: 12 76% 61%;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: hsl(var(--background));
+        color: hsl(var(--foreground));
+      }
+      #root:empty::before {
+        content: '';
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+      }
+      #root:empty::after {
+        content: 'Loading MR FOG® Sales Manager...';
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1rem;
+        color: hsl(var(--muted-foreground));
+      }
+    </style>
   </head>
 
   <body>
