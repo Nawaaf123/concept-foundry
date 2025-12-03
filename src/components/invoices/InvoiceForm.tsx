@@ -28,6 +28,9 @@ interface InvoiceItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
+  categoryFilter?: string;
+  subcategoryFilter?: string;
+  subSubcategoryFilter?: string;
 }
 
 export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) => {
@@ -81,6 +84,52 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     }
   }, [invoice]);
 
+  // Get unique categories from products
+  const categories = Array.from(
+    new Set(products?.map(p => p.category).filter(Boolean) || [])
+  );
+
+  const getSubcategories = (category: string) => {
+    if (!category || category === "all") return [];
+    return Array.from(
+      new Set(
+        products
+          ?.filter(p => p.category === category)
+          .map(p => p.subcategory)
+          .filter(Boolean) || []
+      )
+    );
+  };
+
+  const getSubSubcategories = (category: string, subcategory: string) => {
+    if (!category || category === "all" || !subcategory || subcategory === "all") return [];
+    return Array.from(
+      new Set(
+        products
+          ?.filter(p => p.category === category && p.subcategory === subcategory)
+          .map(p => p.sub_subcategory)
+          .filter(Boolean) || []
+      )
+    );
+  };
+
+  const getFilteredProducts = (item: InvoiceItem) => {
+    if (!products) return [];
+    let filtered = products;
+    
+    if (item.categoryFilter && item.categoryFilter !== "all") {
+      filtered = filtered.filter(p => p.category === item.categoryFilter);
+    }
+    if (item.subcategoryFilter && item.subcategoryFilter !== "all") {
+      filtered = filtered.filter(p => p.subcategory === item.subcategoryFilter);
+    }
+    if (item.subSubcategoryFilter && item.subSubcategoryFilter !== "all") {
+      filtered = filtered.filter(p => p.sub_subcategory === item.subSubcategoryFilter);
+    }
+    
+    return filtered;
+  };
+
   const addItem = () => {
     setItems([
       ...items,
@@ -90,6 +139,9 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         quantity: 1,
         unit_price: 0,
         subtotal: 0,
+        categoryFilter: "all",
+        subcategoryFilter: "all",
+        subSubcategoryFilter: "all",
       },
     ]);
   };
@@ -344,51 +396,152 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           ) : (
             <div className="space-y-3">
               {items.map((item, index) => (
-                <div key={index} className="flex gap-2 items-start p-4 border rounded-lg">
-                  <div className="flex-1 grid grid-cols-4 gap-2">
-                    <div className="col-span-2">
-                      <Label className="text-xs">Product</Label>
+                <div key={index} className="p-4 border rounded-lg space-y-3">
+                  {/* Category Filters */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-xs">Category</Label>
                       <Select
-                        value={item.product_id}
-                        onValueChange={(value) => updateItem(index, "product_id", value)}
+                        value={item.categoryFilter || "all"}
+                        onValueChange={(value) => {
+                          const newItems = [...items];
+                          newItems[index] = {
+                            ...newItems[index],
+                            categoryFilter: value,
+                            subcategoryFilter: "all",
+                            subSubcategoryFilter: "all",
+                            product_id: "",
+                            product_name: "",
+                            unit_price: 0,
+                            subtotal: 0,
+                          };
+                          setItems(newItems);
+                        }}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select product" />
+                          <SelectValue placeholder="All categories" />
                         </SelectTrigger>
                         <SelectContent>
-                          {products?.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name} - ${product.price}
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-xs">Quantity</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateItem(index, "quantity", parseInt(e.target.value) || 1)
-                        }
-                      />
+                      <Label className="text-xs">Subcategory</Label>
+                      <Select
+                        value={item.subcategoryFilter || "all"}
+                        onValueChange={(value) => {
+                          const newItems = [...items];
+                          newItems[index] = {
+                            ...newItems[index],
+                            subcategoryFilter: value,
+                            subSubcategoryFilter: "all",
+                            product_id: "",
+                            product_name: "",
+                            unit_price: 0,
+                            subtotal: 0,
+                          };
+                          setItems(newItems);
+                        }}
+                        disabled={!item.categoryFilter || item.categoryFilter === "all"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All subcategories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Subcategories</SelectItem>
+                          {getSubcategories(item.categoryFilter || "").map((sub) => (
+                            <SelectItem key={sub} value={sub}>
+                              {sub}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
-                      <Label className="text-xs">Subtotal</Label>
-                      <Input value={`$${item.subtotal.toFixed(2)}`} disabled />
+                      <Label className="text-xs">Sub-subcategory</Label>
+                      <Select
+                        value={item.subSubcategoryFilter || "all"}
+                        onValueChange={(value) => {
+                          const newItems = [...items];
+                          newItems[index] = {
+                            ...newItems[index],
+                            subSubcategoryFilter: value,
+                            product_id: "",
+                            product_name: "",
+                            unit_price: 0,
+                            subtotal: 0,
+                          };
+                          setItems(newItems);
+                        }}
+                        disabled={!item.subcategoryFilter || item.subcategoryFilter === "all"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          {getSubSubcategories(item.categoryFilter || "", item.subcategoryFilter || "").map((subsub) => (
+                            <SelectItem key={subsub} value={subsub}>
+                              {subsub}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeItem(index)}
-                    className="mt-6"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+
+                  {/* Product Selection and Quantity */}
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1 grid grid-cols-4 gap-2">
+                      <div className="col-span-2">
+                        <Label className="text-xs">Product</Label>
+                        <Select
+                          value={item.product_id}
+                          onValueChange={(value) => updateItem(index, "product_id", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select product" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getFilteredProducts(item).map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name} - ${product.price}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Quantity</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updateItem(index, "quantity", parseInt(e.target.value) || 1)
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Subtotal</Label>
+                        <Input value={`$${item.subtotal.toFixed(2)}`} disabled />
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
