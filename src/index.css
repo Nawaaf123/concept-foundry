@@ -109,4 +109,36 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Mobile-friendly touch targets */
+  @media (max-width: 640px) {
+    button, 
+    [role="button"],
+    input,
+    select,
+    textarea {
+      min-height: 44px;
+    }
+
+    /* Larger tap targets for interactive elements */
+    .touch-target {
+      @apply min-h-[44px] min-w-[44px];
+    }
+  }
+
+  /* Safe area padding for mobile devices with notches */
+  .safe-area-inset {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mobile dialog improvements */
+@media (max-width: 640px) {
+  [role="dialog"] {
+    max-height: calc(100vh - 2rem) !important;
+    max-width: calc(100vw - 1rem) !important;
+    margin: 0.5rem;
+  }
 }
