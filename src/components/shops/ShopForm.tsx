@@ -135,7 +135,7 @@ export const ShopForm = ({ shop, onSuccess, onCancel }: ShopFormProps) => {
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="phone"
@@ -193,12 +193,12 @@ export const ShopForm = ({ shop, onSuccess, onCancel }: ShopFormProps) => {
           )}
         />
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
           <FormField
             control={form.control}
             name="city"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="col-span-2 sm:col-span-1">
                 <FormLabel>City</FormLabel>
                 <FormControl>
                   <Input placeholder="Madison" {...field} />
@@ -215,7 +215,7 @@ export const ShopForm = ({ shop, onSuccess, onCancel }: ShopFormProps) => {
               <FormItem>
                 <FormLabel>State</FormLabel>
                 <FormControl>
-                  <Input placeholder="Wisconsin" {...field} />
+                  <Input placeholder="WI" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -237,11 +237,11 @@ export const ShopForm = ({ shop, onSuccess, onCancel }: ShopFormProps) => {
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button type="submit" disabled={mutation.isPending}>
+          <Button type="submit" disabled={mutation.isPending} className="w-full sm:w-auto">
             {mutation.isPending ? "Saving..." : shop ? "Update" : "Create"}
           </Button>
         </div>

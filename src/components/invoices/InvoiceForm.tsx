@@ -369,9 +369,10 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
               type="button"
               variant="outline"
               onClick={() => setShowAddShopDialog(true)}
+              className="flex-shrink-0"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Shop
+              <Plus className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Add Shop</span>
             </Button>
           </div>
         </div>
@@ -734,17 +735,17 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         </div>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="w-full sm:w-auto">
           Cancel
         </Button>
-        <Button type="submit" disabled={mutation.isPending || isSubmitting}>
+        <Button type="submit" disabled={mutation.isPending || isSubmitting} className="w-full sm:w-auto">
           {mutation.isPending || isSubmitting ? "Creating..." : "Create Invoice"}
         </Button>
       </div>
 
       <Dialog open={showAddShopDialog} onOpenChange={setShowAddShopDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Shop</DialogTitle>
           </DialogHeader>

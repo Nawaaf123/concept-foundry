@@ -305,35 +305,35 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Invoice Details - {selectedInvoice?.invoice_number}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Invoice Details - {selectedInvoice?.invoice_number}</DialogTitle>
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Shop</p>
-                  <p className="font-medium">{selectedInvoice.shops?.name}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Shop</p>
+                  <p className="font-medium text-sm sm:text-base">{selectedInvoice.shops?.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Date</p>
-                  <p className="font-medium">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Date</p>
+                  <p className="font-medium text-sm sm:text-base">
                     {new Date(selectedInvoice.created_at).toLocaleDateString()}
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg mb-4">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 bg-muted rounded-lg mb-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
-                  <p className="text-xl font-bold">${Number(selectedInvoice.total_amount).toFixed(2)}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
+                  <p className="text-base sm:text-xl font-bold">${Number(selectedInvoice.total_amount).toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Paid</p>
-                  <p className="text-xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Paid</p>
+                  <p className="text-base sm:text-xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Remaining</p>
-                  <p className="text-xl font-bold text-orange-600">${remainingAmount.toFixed(2)}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Due</p>
+                  <p className="text-base sm:text-xl font-bold text-orange-600">${remainingAmount.toFixed(2)}</p>
                 </div>
               </div>
 
@@ -368,30 +368,30 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
                   {/* Payment Method Breakdown - Admin Only */}
                   {isAdmin && (
                     <div className="mb-4">
-                      <p className="text-sm text-muted-foreground mb-2">Payment Breakdown by Method</p>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="border rounded-lg p-4 bg-muted/50">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">Cash Payments</span>
-                            <Badge variant="outline">
-                              {payments.filter(p => p.payment_method === 'cash').length} transaction(s)
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-2">Payment Breakdown</p>
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                        <div className="border rounded-lg p-2 sm:p-4 bg-muted/50">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                            <span className="text-xs sm:text-sm font-medium">Cash</span>
+                            <Badge variant="outline" className="text-xs w-fit">
+                              {payments.filter(p => p.payment_method === 'cash').length}
                             </Badge>
                           </div>
-                          <p className="text-2xl font-bold mt-2 text-green-600">
+                          <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2 text-green-600">
                             ${payments
                               .filter(p => p.payment_method === 'cash')
                               .reduce((sum, p) => sum + Number(p.amount), 0)
                               .toFixed(2)}
                           </p>
                         </div>
-                        <div className="border rounded-lg p-4 bg-muted/50">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">Check Payments</span>
-                            <Badge variant="outline">
-                              {payments.filter(p => p.payment_method === 'check').length} transaction(s)
+                        <div className="border rounded-lg p-2 sm:p-4 bg-muted/50">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                            <span className="text-xs sm:text-sm font-medium">Check</span>
+                            <Badge variant="outline" className="text-xs w-fit">
+                              {payments.filter(p => p.payment_method === 'check').length}
                             </Badge>
                           </div>
-                          <p className="text-2xl font-bold mt-2 text-blue-600">
+                          <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2 text-blue-600">
                             ${payments
                               .filter(p => p.payment_method === 'check')
                               .reduce((sum, p) => sum + Number(p.amount), 0)
@@ -402,9 +402,34 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
                     </div>
                   )}
 
+                  {/* Mobile Payment History */}
                   <div className="mb-4">
-                    <p className="text-sm text-muted-foreground mb-2">Payment History</p>
-                    <div className="border rounded-lg overflow-hidden">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-2">Payment History</p>
+                    
+                    {/* Mobile: Card view */}
+                    <div className="sm:hidden space-y-2">
+                      {payments.map((payment) => (
+                        <div key={payment.id} className="border rounded-lg p-3 bg-muted/30">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-semibold">${Number(payment.amount).toFixed(2)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(payment.payment_date), "MMM d, yyyy")}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="capitalize text-xs">
+                              {payment.payment_method}
+                            </Badge>
+                          </div>
+                          {payment.check_number && (
+                            <p className="text-xs text-muted-foreground mt-1">Check #{payment.check_number}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop: Table view */}
+                    <div className="hidden sm:block border rounded-lg overflow-hidden">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -450,25 +475,26 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
               )}
 
               {remainingAmount > 0 && (
-                <div className="flex justify-end gap-2">
-                  <Button onClick={() => handleRecordPayment(selectedInvoice)}>
+                <div className="flex justify-center sm:justify-end gap-2">
+                  <Button onClick={() => handleRecordPayment(selectedInvoice)} className="w-full sm:w-auto">
                     <DollarSign className="h-4 w-4 mr-2" />
                     Record Payment
                   </Button>
                 </div>
               )}
 
-              <div className="flex justify-between items-center p-4 bg-muted rounded-lg mt-4">
-                <span className="font-semibold">Total Amount:</span>
-                <span className="text-xl font-bold text-primary">
+              <div className="flex justify-between items-center p-3 sm:p-4 bg-muted rounded-lg mt-4">
+                <span className="font-semibold text-sm sm:text-base">Total Amount:</span>
+                <span className="text-lg sm:text-xl font-bold text-primary">
                   ${parseFloat(selectedInvoice.total_amount).toFixed(2)}
                 </span>
               </div>
 
-              <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4 pt-4 border-t">
                 <Button
                   variant="outline"
                   onClick={() => handleExportPDF(selectedInvoice)}
+                  className="w-full sm:w-auto"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export PDF
