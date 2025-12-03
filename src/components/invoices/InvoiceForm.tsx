@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,11 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ShopForm } from "@/components/shops/ShopForm";
 
 interface InvoiceFormProps {
   invoice?: any;
@@ -37,6 +44,7 @@ interface InvoiceItem {
 export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [shopId, setShopId] = useState(invoice?.shop_id || "");
   const [notes, setNotes] = useState(invoice?.notes || "");
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "partial" | "unpaid">(invoice?.payment_status || "unpaid");
@@ -44,8 +52,9 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [cashAmount, setCashAmount] = useState("");
   const [checkAmount, setCheckAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAddShopDialog, setShowAddShopDialog] = useState(false);
 
-  const { data: shops } = useQuery({
+  const { data: shops, refetch: refetchShops } = useQuery({
     queryKey: ["shops"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -324,23 +333,47 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     mutation.mutate();
   };
 
+  const handleShopCreated = async () => {
+    setShowAddShopDialog(false);
+    const result = await refetchShops();
+    // Select the newly created shop (last one added, sorted by name so we need to find it)
+    if (result.data && result.data.length > 0) {
+      // Get the most recently created shop
+      const newestShop = result.data.reduce((latest, shop) => 
+        new Date(shop.created_at) > new Date(latest.created_at) ? shop : latest
+      );
+      setShopId(newestShop.id);
+    }
+    queryClient.invalidateQueries({ queryKey: ["shops"] });
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="shop">Shop *</Label>
-          <Select value={shopId} onValueChange={setShopId} required>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a shop" />
-            </SelectTrigger>
-            <SelectContent>
-              {shops?.map((shop) => (
-                <SelectItem key={shop.id} value={shop.id}>
-                  {shop.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select value={shopId} onValueChange={setShopId} required>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Select a shop" />
+              </SelectTrigger>
+              <SelectContent>
+                {shops?.map((shop) => (
+                  <SelectItem key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowAddShopDialog(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Shop
+            </Button>
+          </div>
         </div>
 
         {shopId && shops && (() => {
@@ -709,6 +742,18 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           {mutation.isPending || isSubmitting ? "Creating..." : "Create Invoice"}
         </Button>
       </div>
+
+      <Dialog open={showAddShopDialog} onOpenChange={setShowAddShopDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Shop</DialogTitle>
+          </DialogHeader>
+          <ShopForm
+            onSuccess={handleShopCreated}
+            onCancel={() => setShowAddShopDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </form>
   );
 };
