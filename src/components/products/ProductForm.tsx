@@ -27,6 +27,7 @@ const productSchema = z.object({
   price: z.coerce.number().min(0.01, "Price must be greater than 0"),
   category: z.string().trim().min(1, "Category is required").max(50, "Category must be less than 50 characters"),
   subcategory: z.string().trim().min(1, "Subcategory is required").max(50, "Subcategory must be less than 50 characters"),
+  sub_subcategory: z.string().trim().max(50, "Sub-subcategory must be less than 50 characters").optional().or(z.literal("")),
   stock_quantity: z.coerce.number().int().min(0, "Stock must be 0 or greater"),
   low_stock_threshold: z.coerce.number().int().min(0, "Threshold must be 0 or greater"),
   image_url: z.string().url("Invalid URL").optional().or(z.literal("")),
@@ -50,6 +51,7 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
       price: product?.price || 0,
       category: product?.category || "",
       subcategory: product?.subcategory || "",
+      sub_subcategory: product?.sub_subcategory || "",
       stock_quantity: product?.stock_quantity || 0,
       low_stock_threshold: product?.low_stock_threshold || 10,
       image_url: product?.image_url || "",
@@ -63,6 +65,7 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         price: values.price,
         category: values.category,
         subcategory: values.subcategory,
+        sub_subcategory: values.sub_subcategory || null,
         stock_quantity: values.stock_quantity,
         low_stock_threshold: values.low_stock_threshold,
         image_url: values.image_url || null,
@@ -157,6 +160,20 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
               <FormLabel>Subcategory</FormLabel>
               <FormControl>
                 <Input placeholder="Enter subcategory" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="sub_subcategory"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sub-subcategory (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter sub-subcategory" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -161,6 +161,7 @@ export type Database = {
           name: string
           price: number
           stock_quantity: number
+          sub_subcategory: string | null
           subcategory: string | null
           updated_at: string
         }
@@ -174,6 +175,7 @@ export type Database = {
           name: string
           price: number
           stock_quantity?: number
+          sub_subcategory?: string | null
           subcategory?: string | null
           updated_at?: string
         }
@@ -187,6 +189,7 @@ export type Database = {
           name?: string
           price?: number
           stock_quantity?: number
+          sub_subcategory?: string | null
           subcategory?: string | null
           updated_at?: string
         }
