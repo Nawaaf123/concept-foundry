@@ -398,7 +398,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
               {items.map((item, index) => (
                 <div key={index} className="p-4 border rounded-lg space-y-3">
                   {/* Category Filters */}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div>
                       <Label className="text-xs">Category</Label>
                       <Select
@@ -497,8 +497,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                   </div>
 
                   {/* Product Selection and Quantity */}
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1 grid grid-cols-4 gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                    <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div className="col-span-2">
                         <Label className="text-xs">Product</Label>
                         <Select
@@ -538,6 +538,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                       variant="ghost"
                       size="icon"
                       onClick={() => removeItem(index)}
+                      className="self-end sm:self-auto"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
