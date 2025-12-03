@@ -10,6 +10,8 @@ import { LowStockAlert } from "@/components/dashboard/LowStockAlert";
 import { PendingPayments } from "@/components/dashboard/PendingPayments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
+import { SalesMap } from "@/components/location/SalesMap";
+import { LocationTracker } from "@/components/location/LocationTracker";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -182,6 +184,17 @@ const Dashboard = () => {
 
         {/* Pending Payments - Admin Only */}
         {isAdmin && <PendingPayments userId={user?.id} isAdmin={isAdmin} />}
+
+        {/* Sales Location Map - Admin Only */}
+        {isAdmin && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Sales Team Locations</h3>
+            <SalesMap />
+          </div>
+        )}
+
+        {/* Location Tracker - Sales Only */}
+        {!isAdmin && <LocationTracker />}
 
         {/* Charts and Lists Grid - Admin Only */}
         {isAdmin && (
