@@ -264,7 +264,8 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
       );
 
       // Convert to base64
-      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      const pdfDoc = await doc;
+      const pdfBase64 = pdfDoc.output('datauristring').split(',')[1];
 
       // Send email via edge function
       const { data, error } = await supabase.functions.invoke('send-invoice-email', {
