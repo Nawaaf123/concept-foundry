@@ -32,7 +32,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "MR FOG Sales <onboarding@resend.dev>",
+        from: "MR FOG Sales <sales@mrfog.com>",
         to: [to],
         subject: `Invoice ${invoiceNumber} from MR FOG®`,
         html: `
