@@ -32,7 +32,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { Plus, Trash2, Pencil, ChevronsUpDown, Check, MapPin } from "lucide-react";
+import { Plus, Trash2, Pencil, ChevronsUpDown, Check, MapPin, Mail, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { generateInvoicePDF } from "@/lib/pdfGenerator";
 import { Input } from "@/components/ui/input";
 import { ShopForm } from "@/components/shops/ShopForm";
 import { cn } from "@/lib/utils";
@@ -68,6 +70,9 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddShopDialog, setShowAddShopDialog] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
+  const [sendEmail, setSendEmail] = useState(true);
+  const [useCustomEmail, setUseCustomEmail] = useState(false);
+  const [customEmail, setCustomEmail] = useState("");
 
   const getShopLocation = (shop: any) => {
     const parts = [shop.city, shop.state].filter(Boolean);
@@ -222,6 +227,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         throw new Error("Please select a shop and add at least one product");
       }
 
+      // Validate email if sending is enabled
+      const selectedShop = shops?.find(s => s.id === shopId);
+      if (sendEmail) {
+        const emailTo = useCustomEmail || !selectedShop?.email ? customEmail : selectedShop?.email;
+        if (!emailTo || !emailTo.includes("@")) {
+          throw new Error("Please provide a valid email address to send the invoice");
+        }
+      }
+
       // Validate payment amounts if paid or partial
       if (paymentStatus === "paid" || paymentStatus === "partial") {
         const cash = parseFloat(cashAmount) || 0;
@@ -328,14 +342,95 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         }
       }
 
-      return invoiceData;
+      return { invoiceData, invoiceItems };
     },
-    onSuccess: () => {
+    onSuccess: async ({ invoiceData, invoiceItems }) => {
+      // Send email if enabled
+      if (sendEmail) {
+        const selectedShop = shops?.find(s => s.id === shopId);
+        const emailTo = useCustomEmail || !selectedShop?.email ? customEmail : selectedShop?.email;
+        
+        if (emailTo && emailTo.includes("@")) {
+          try {
+            // Calculate payment amounts
+            const cash = parseFloat(cashAmount) || 0;
+            const check = parseFloat(checkAmount) || 0;
+            const totalPaid = cash + check;
+            const remainingAmount = totalAmount - totalPaid;
+
+            // Generate PDF
+            const doc = generateInvoicePDF(
+              {
+                invoice_number: invoiceData.invoice_number,
+                created_at: invoiceData.created_at,
+                total_amount: invoiceData.total_amount,
+                payment_status: invoiceData.payment_status,
+                notes: invoiceData.notes,
+                shops: selectedShop || { name: "Unknown" },
+                items: invoiceItems.map((item: any) => ({
+                  product_name: item.product_name,
+                  quantity: item.quantity,
+                  unit_price: item.unit_price,
+                  subtotal: item.subtotal,
+                })),
+                payments: paymentStatus !== "unpaid" ? [
+                  ...(cash > 0 ? [{ payment_date: new Date().toISOString(), amount: cash, payment_method: "cash" }] : []),
+                  ...(check > 0 ? [{ payment_date: new Date().toISOString(), amount: check, payment_method: "check" }] : []),
+                ] : [],
+              },
+              totalPaid,
+              remainingAmount
+            );
+
+            // Convert to base64
+            const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+            // Send email via edge function
+            const { error: emailError } = await supabase.functions.invoke('send-invoice-email', {
+              body: {
+                to: emailTo,
+                invoiceNumber: invoiceData.invoice_number,
+                shopName: selectedShop?.name || "Customer",
+                totalAmount: Number(invoiceData.total_amount),
+                pdfBase64,
+              },
+            });
+
+            if (emailError) {
+              console.error("Email send error:", emailError);
+              toast({
+                title: "Invoice Created",
+                description: `Invoice created but email failed to send: ${emailError.message}`,
+                variant: "default",
+              });
+            } else {
+              toast({
+                title: "Success",
+                description: `Invoice created and sent to ${emailTo}`,
+              });
+            }
+          } catch (emailErr: any) {
+            console.error("Email error:", emailErr);
+            toast({
+              title: "Invoice Created",
+              description: "Invoice created but failed to send email",
+              variant: "default",
+            });
+          }
+        } else {
+          toast({
+            title: "Success",
+            description: "Invoice created (no valid email to send to)",
+          });
+        }
+      } else {
+        toast({
+          title: "Success",
+          description: "Invoice created successfully",
+        });
+      }
+      
       setIsSubmitting(false);
-      toast({
-        title: "Success",
-        description: "Invoice created successfully",
-      });
       onSuccess();
     },
     onError: (error: any) => {
@@ -460,39 +555,89 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           if (!selectedShop) return null;
           
           return (
-            <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-              <h3 className="font-semibold text-sm">Customer Details</h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {selectedShop.owner_name && (
-                  <div>
-                    <span className="text-muted-foreground">Owner:</span>{" "}
-                    <span className="font-medium">{selectedShop.owner_name}</span>
-                  </div>
-                )}
-                {selectedShop.phone && (
-                  <div>
-                    <span className="text-muted-foreground">Phone:</span>{" "}
-                    <span className="font-medium">{selectedShop.phone}</span>
-                  </div>
-                )}
-                {selectedShop.email && (
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Email:</span>{" "}
-                    <span className="font-medium">{selectedShop.email}</span>
-                  </div>
-                )}
-                {(selectedShop.street_address || selectedShop.city || selectedShop.state) && (
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Location:</span>{" "}
-                    <span className="font-medium">
-                      {[
-                        selectedShop.street_address,
-                        selectedShop.street_address_line_2,
-                        selectedShop.city,
-                        selectedShop.state,
-                        selectedShop.zip_code
-                      ].filter(Boolean).join(", ")}
-                    </span>
+            <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Customer Details</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {selectedShop.owner_name && (
+                    <div>
+                      <span className="text-muted-foreground">Owner:</span>{" "}
+                      <span className="font-medium">{selectedShop.owner_name}</span>
+                    </div>
+                  )}
+                  {selectedShop.phone && (
+                    <div>
+                      <span className="text-muted-foreground">Phone:</span>{" "}
+                      <span className="font-medium">{selectedShop.phone}</span>
+                    </div>
+                  )}
+                  {selectedShop.email && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Email:</span>{" "}
+                      <span className="font-medium">{selectedShop.email}</span>
+                    </div>
+                  )}
+                  {(selectedShop.street_address || selectedShop.city || selectedShop.state) && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Location:</span>{" "}
+                      <span className="font-medium">
+                        {[
+                          selectedShop.street_address,
+                          selectedShop.street_address_line_2,
+                          selectedShop.city,
+                          selectedShop.state,
+                          selectedShop.zip_code
+                        ].filter(Boolean).join(", ")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Email Invoice Section */}
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="send_email" 
+                    checked={sendEmail} 
+                    onCheckedChange={(checked) => setSendEmail(checked as boolean)}
+                  />
+                  <Label htmlFor="send_email" className="flex items-center gap-2 cursor-pointer">
+                    <Mail className="h-4 w-4" />
+                    Send invoice to customer via email
+                  </Label>
+                </div>
+
+                {sendEmail && (
+                  <div className="ml-6 space-y-3">
+                    {selectedShop.email && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">Will send to:</span>
+                        <span className="font-medium">{useCustomEmail ? customEmail || "Enter email below" : selectedShop.email}</span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="use_custom_email" 
+                        checked={useCustomEmail || !selectedShop.email} 
+                        onCheckedChange={(checked) => setUseCustomEmail(checked as boolean)}
+                        disabled={!selectedShop.email}
+                      />
+                      <Label htmlFor="use_custom_email" className="text-sm cursor-pointer">
+                        {selectedShop.email ? "Use a different email address" : "No email on file - enter email below"}
+                      </Label>
+                    </div>
+
+                    {(useCustomEmail || !selectedShop.email) && (
+                      <Input
+                        type="email"
+                        placeholder="Enter customer email address"
+                        value={customEmail}
+                        onChange={(e) => setCustomEmail(e.target.value)}
+                        className="max-w-sm"
+                      />
+                    )}
                   </div>
                 )}
               </div>
