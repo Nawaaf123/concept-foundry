@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import mrFogLogo from "@/assets/mr-fog-logo.jpg";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -65,9 +64,6 @@ const Auth = () => {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <img src={mrFogLogo} alt="MR FOG" className="h-12 object-contain" />
-          </div>
           <CardTitle className="text-2xl">{isLogin ? "Sign In" : "Sign Up"}</CardTitle>
           <CardDescription>
             {isLogin ? "Welcome back to MR FOG® Sales Manager" : "Create your MR FOG® account"}
