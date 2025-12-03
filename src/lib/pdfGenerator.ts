@@ -42,22 +42,18 @@ export const generateInvoicePDF = (invoice: InvoiceData, totalPaid: number, rema
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
   
-  // MR FOG Branding Colors
-  const primaryColor: [number, number, number] = [217, 93, 78]; // #D95D4E
+  // Neutral Colors
+  const primaryColor: [number, number, number] = [51, 51, 51]; // Dark gray
   const darkColor: [number, number, number] = [51, 51, 51];
   
-  // Header - MR FOG Branding
+  // Header
   doc.setFillColor(...primaryColor);
   doc.rect(0, 0, pageWidth, 40, "F");
   
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
-  doc.text("MR FOG®", 15, 20);
-  
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text("Sales Manager", 15, 28);
+  doc.text("INVOICE", 15, 25);
   
   // Invoice Number (top right)
   doc.setFontSize(12);
@@ -265,7 +261,6 @@ export const generateInvoicePDF = (invoice: InvoiceData, totalPaid: number, rema
   doc.setFontSize(8);
   doc.setTextColor(128, 128, 128);
   doc.text("Thank you for your business!", pageWidth / 2, footerY, { align: "center" });
-  doc.text("MR FOG® Sales Manager", pageWidth / 2, footerY + 5, { align: "center" });
   
   return doc;
 };
