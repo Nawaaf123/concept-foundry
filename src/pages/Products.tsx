@@ -37,7 +37,7 @@ const Products = () => {
 
   const isAdmin = userRole === "admin";
 
-  const { data: allProducts } = useQuery({
+  const { data: allProducts, refetch: refetchAllProducts } = useQuery({
     queryKey: ["allProducts"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -145,6 +145,7 @@ const Products = () => {
     setIsFormOpen(false);
     setEditingProduct(null);
     refetch();
+    refetchAllProducts();
   };
 
   return (
