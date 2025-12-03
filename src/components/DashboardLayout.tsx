@@ -37,7 +37,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
   const allNavItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Package, label: "Products", path: "/products" },
-    { icon: BarChart3, label: "Analytics", path: "/analytics" },
+    { icon: BarChart3, label: "Analytics", path: "/analytics", adminOnly: true },
     { icon: ShoppingBag, label: "Shops", path: "/shops" },
     { icon: FileText, label: "Invoices", path: "/invoices" },
     { icon: TrendingUp, label: "Sales Performance", path: "/sales-performance", adminOnly: true },
