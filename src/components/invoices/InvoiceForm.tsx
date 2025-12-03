@@ -807,11 +807,13 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                               value={item.product_id}
                               onValueChange={(value) => {
                                 updateItem(index, "product_id", value);
-                                // Auto-collapse after selecting product
+                                // Auto-collapse after selecting product using functional update
                                 setTimeout(() => {
-                                  const newItems = [...items];
-                                  newItems[index] = { ...newItems[index], isEditing: false };
-                                  setItems(newItems);
+                                  setItems(currentItems => 
+                                    currentItems.map((currentItem, i) => 
+                                      i === index ? { ...currentItem, isEditing: false } : currentItem
+                                    )
+                                  );
                                 }, 100);
                               }}
                             >
@@ -821,7 +823,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                               <SelectContent>
                                 {getFilteredProducts(item).map((product) => (
                                   <SelectItem key={product.id} value={product.id}>
-                                    {product.name} - ${product.price}
+                                    {product.name} - ${Number(product.price).toFixed(2)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
