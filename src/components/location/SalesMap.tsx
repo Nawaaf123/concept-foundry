@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
-mapboxgl.accessToken = "pk.eyJ1IjoibmF3YWFmbW9oZDIyIiwiYSI6ImNtaXFjN3JvcjBhNjczanEwM2d1YzRrdzYifQ.ze4RFBLUOIh50vU10LsByg";
+const MAPBOX_TOKEN = "pk.eyJ1IjoibmF3YWFmbW9oZDIyIiwiYSI6ImNtaXFjN3JvcjBhNjczanEwM2d1YzRrdzYifQ.ze4RFBLUOIh50vU10LsByg";
 
 interface SalesLocation {
   id: string;
@@ -26,45 +26,65 @@ export const SalesMap = () => {
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!mapContainer.current) {
+      console.error("Map container not found");
+      return;
+    }
 
-    // Initialize map
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: [-98.5795, 39.8283], // Center of USA
-      zoom: 4,
-    });
+    // Set access token before creating map
+    mapboxgl.accessToken = MAPBOX_TOKEN;
 
-    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+    try {
+      // Initialize map
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [-98.5795, 39.8283], // Center of USA
+        zoom: 4,
+      });
 
-    map.current.on("load", () => {
+      map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+
+      map.current.on("load", () => {
+        console.log("Mapbox map loaded successfully");
+        setLoading(false);
+        fetchAndDisplayLocations();
+      });
+
+      map.current.on("error", (e) => {
+        console.error("Mapbox error:", e);
+        setMapError("Failed to load map");
+        setLoading(false);
+      });
+
+      // Subscribe to realtime updates
+      const channel = supabase
+        .channel("user_locations_changes")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "user_locations",
+          },
+          () => {
+            fetchAndDisplayLocations();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        map.current?.remove();
+        supabase.removeChannel(channel);
+      };
+    } catch (error) {
+      console.error("Error initializing map:", error);
+      setMapError("Failed to initialize map");
       setLoading(false);
-      fetchAndDisplayLocations();
-    });
-
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel("user_locations_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "user_locations",
-        },
-        () => {
-          fetchAndDisplayLocations();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      map.current?.remove();
-      supabase.removeChannel(channel);
-    };
+    }
   }, []);
 
   const fetchAndDisplayLocations = async () => {
@@ -143,7 +163,16 @@ export const SalesMap = () => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
-      <div ref={mapContainer} className="absolute inset-0" />
+      {mapError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+          <p className="text-destructive">{mapError}</p>
+        </div>
+      )}
+      <div 
+        ref={mapContainer} 
+        className="w-full h-full"
+        style={{ minHeight: "500px" }}
+      />
     </Card>
   );
 };
