@@ -13,7 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface InvoiceFormProps {
@@ -31,6 +31,7 @@ interface InvoiceItem {
   categoryFilter?: string;
   subcategoryFilter?: string;
   subSubcategoryFilter?: string;
+  isEditing?: boolean;
 }
 
 export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) => {
@@ -142,8 +143,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         categoryFilter: "all",
         subcategoryFilter: "all",
         subSubcategoryFilter: "all",
+        isEditing: true,
       },
     ]);
+  };
+
+  const toggleEditItem = (index: number) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], isEditing: !newItems[index].isEditing };
+    setItems(newItems);
   };
 
   const removeItem = (index: number) => {
@@ -394,155 +402,201 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
               No products added. Click "Add Product" to start.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {items.map((item, index) => (
-                <div key={index} className="p-4 border rounded-lg space-y-3">
-                  {/* Category Filters */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div>
-                      <Label className="text-xs">Category</Label>
-                      <Select
-                        value={item.categoryFilter || "all"}
-                        onValueChange={(value) => {
-                          const newItems = [...items];
-                          newItems[index] = {
-                            ...newItems[index],
-                            categoryFilter: value,
-                            subcategoryFilter: "all",
-                            subSubcategoryFilter: "all",
-                            product_id: "",
-                            product_name: "",
-                            unit_price: 0,
-                            subtotal: 0,
-                          };
-                          setItems(newItems);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All categories" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Categories</SelectItem>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat} value={cat}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-xs">Subcategory</Label>
-                      <Select
-                        value={item.subcategoryFilter || "all"}
-                        onValueChange={(value) => {
-                          const newItems = [...items];
-                          newItems[index] = {
-                            ...newItems[index],
-                            subcategoryFilter: value,
-                            subSubcategoryFilter: "all",
-                            product_id: "",
-                            product_name: "",
-                            unit_price: 0,
-                            subtotal: 0,
-                          };
-                          setItems(newItems);
-                        }}
-                        disabled={!item.categoryFilter || item.categoryFilter === "all"}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All subcategories" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Subcategories</SelectItem>
-                          {getSubcategories(item.categoryFilter || "").map((sub) => (
-                            <SelectItem key={sub} value={sub}>
-                              {sub}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-xs">Sub-subcategory</Label>
-                      <Select
-                        value={item.subSubcategoryFilter || "all"}
-                        onValueChange={(value) => {
-                          const newItems = [...items];
-                          newItems[index] = {
-                            ...newItems[index],
-                            subSubcategoryFilter: value,
-                            product_id: "",
-                            product_name: "",
-                            unit_price: 0,
-                            subtotal: 0,
-                          };
-                          setItems(newItems);
-                        }}
-                        disabled={!item.subcategoryFilter || item.subcategoryFilter === "all"}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          {getSubSubcategories(item.categoryFilter || "", item.subcategoryFilter || "").map((subsub) => (
-                            <SelectItem key={subsub} value={subsub}>
-                              {subsub}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Product Selection and Quantity */}
-                  <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-                    <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <div className="col-span-2">
-                        <Label className="text-xs">Product</Label>
-                        <Select
-                          value={item.product_id}
-                          onValueChange={(value) => updateItem(index, "product_id", value)}
+                <div key={index} className="border rounded-lg">
+                  {/* Compact View - when product is selected and not editing */}
+                  {item.product_id && !item.isEditing ? (
+                    <div className="flex items-center justify-between p-3 gap-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium truncate block">{item.product_name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {item.quantity} × ${item.unit_price.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="font-semibold text-primary whitespace-nowrap">
+                        ${item.subtotal.toFixed(2)}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleEditItem(index)}
+                          className="h-8 w-8"
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {getFilteredProducts(item).map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} - ${product.price}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-xs">Quantity</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(index, "quantity", parseInt(e.target.value) || 1)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Subtotal</Label>
-                        <Input value={`$${item.subtotal.toFixed(2)}`} disabled />
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeItem(index)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeItem(index)}
-                      className="self-end sm:self-auto"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  ) : (
+                    /* Full Edit View - when adding or editing */
+                    <div className="p-4 space-y-3">
+                      {/* Category Filters */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                          <Label className="text-xs">Category</Label>
+                          <Select
+                            value={item.categoryFilter || "all"}
+                            onValueChange={(value) => {
+                              const newItems = [...items];
+                              newItems[index] = {
+                                ...newItems[index],
+                                categoryFilter: value,
+                                subcategoryFilter: "all",
+                                subSubcategoryFilter: "all",
+                                product_id: "",
+                                product_name: "",
+                                unit_price: 0,
+                                subtotal: 0,
+                              };
+                              setItems(newItems);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All categories" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Categories</SelectItem>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat} value={cat}>
+                                  {cat}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Subcategory</Label>
+                          <Select
+                            value={item.subcategoryFilter || "all"}
+                            onValueChange={(value) => {
+                              const newItems = [...items];
+                              newItems[index] = {
+                                ...newItems[index],
+                                subcategoryFilter: value,
+                                subSubcategoryFilter: "all",
+                                product_id: "",
+                                product_name: "",
+                                unit_price: 0,
+                                subtotal: 0,
+                              };
+                              setItems(newItems);
+                            }}
+                            disabled={!item.categoryFilter || item.categoryFilter === "all"}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All subcategories" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Subcategories</SelectItem>
+                              {getSubcategories(item.categoryFilter || "").map((sub) => (
+                                <SelectItem key={sub} value={sub}>
+                                  {sub}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Sub-subcategory</Label>
+                          <Select
+                            value={item.subSubcategoryFilter || "all"}
+                            onValueChange={(value) => {
+                              const newItems = [...items];
+                              newItems[index] = {
+                                ...newItems[index],
+                                subSubcategoryFilter: value,
+                                product_id: "",
+                                product_name: "",
+                                unit_price: 0,
+                                subtotal: 0,
+                              };
+                              setItems(newItems);
+                            }}
+                            disabled={!item.subcategoryFilter || item.subcategoryFilter === "all"}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All</SelectItem>
+                              {getSubSubcategories(item.categoryFilter || "", item.subcategoryFilter || "").map((subsub) => (
+                                <SelectItem key={subsub} value={subsub}>
+                                  {subsub}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Product Selection and Quantity */}
+                      <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <div className="col-span-2">
+                            <Label className="text-xs">Product</Label>
+                            <Select
+                              value={item.product_id}
+                              onValueChange={(value) => {
+                                updateItem(index, "product_id", value);
+                                // Auto-collapse after selecting product
+                                setTimeout(() => {
+                                  const newItems = [...items];
+                                  newItems[index] = { ...newItems[index], isEditing: false };
+                                  setItems(newItems);
+                                }, 100);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select product" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getFilteredProducts(item).map((product) => (
+                                  <SelectItem key={product.id} value={product.id}>
+                                    {product.name} - ${product.price}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Quantity</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                updateItem(index, "quantity", parseInt(e.target.value) || 1)
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Subtotal</Label>
+                            <Input value={`$${item.subtotal.toFixed(2)}`} disabled />
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeItem(index)}
+                          className="self-end sm:self-auto"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
