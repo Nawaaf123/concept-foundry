@@ -199,15 +199,16 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     if (field === "product_id" && products) {
       const product = products.find((p) => p.id === value);
       if (product) {
+        const price = Number(product.price) || 0;
         newItems[index].product_name = product.name;
-        newItems[index].unit_price = product.price;
+        newItems[index].unit_price = price;
         // Recalculate subtotal after setting product price
-        newItems[index].subtotal = newItems[index].quantity * product.price;
+        newItems[index].subtotal = newItems[index].quantity * price;
       }
     }
 
     if (field === "quantity" || field === "unit_price") {
-      newItems[index].subtotal = newItems[index].quantity * newItems[index].unit_price;
+      newItems[index].subtotal = Number(newItems[index].quantity) * Number(newItems[index].unit_price);
     }
 
     setItems(newItems);
