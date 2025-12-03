@@ -12,15 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    // Verify the caller is an admin
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization header required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    // Create admin client with service role key
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -32,12 +24,21 @@ serve(async (req) => {
       }
     );
 
+    // Verify the caller is an admin
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Verify the token and get the calling user
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user: callingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user: callingUser }, error: tokenError } = await supabaseAdmin.auth.getUser(token);
     
-    if (authError || !callingUser) {
-      console.error('Auth verification failed:', authError);
+    if (tokenError || !callingUser) {
+      console.error('Auth verification failed:', tokenError);
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -77,20 +78,8 @@ serve(async (req) => {
       );
     }
 
-    // Create admin client with service role key
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
-
     // Create the user using admin client
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -99,10 +88,10 @@ serve(async (req) => {
       }
     });
 
-    if (authError) {
-      console.error('Auth error:', authError);
+    if (createUserError) {
+      console.error('Auth error:', createUserError);
       return new Response(
-        JSON.stringify({ error: authError.message }),
+        JSON.stringify({ error: createUserError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
