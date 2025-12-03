@@ -384,7 +384,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
             );
 
             // Convert to base64
-            const pdfBase64 = doc.output('datauristring').split(',')[1];
+            const pdfDoc = await doc;
+            const pdfBase64 = pdfDoc.output('datauristring').split(',')[1];
 
             // Send email via edge function
             const { error: emailError } = await supabase.functions.invoke('send-invoice-email', {

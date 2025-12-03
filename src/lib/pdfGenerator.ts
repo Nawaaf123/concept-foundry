@@ -1,5 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 
 interface InvoiceItem {
@@ -38,7 +36,13 @@ interface InvoiceData {
   payments?: Payment[];
 }
 
-export const generateInvoicePDF = (invoice: InvoiceData, totalPaid: number, remainingAmount: number) => {
+export const generateInvoicePDF = async (invoice: InvoiceData, totalPaid: number, remainingAmount: number) => {
+  // Dynamic import - only loads when function is called
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable")
+  ]);
+
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
   
@@ -265,7 +269,7 @@ export const generateInvoicePDF = (invoice: InvoiceData, totalPaid: number, rema
   return doc;
 };
 
-export const saveInvoicePDF = (invoice: InvoiceData, totalPaid: number, remainingAmount: number) => {
-  const doc = generateInvoicePDF(invoice, totalPaid, remainingAmount);
+export const saveInvoicePDF = async (invoice: InvoiceData, totalPaid: number, remainingAmount: number) => {
+  const doc = await generateInvoicePDF(invoice, totalPaid, remainingAmount);
   doc.save(`${invoice.invoice_number}.pdf`);
 };
