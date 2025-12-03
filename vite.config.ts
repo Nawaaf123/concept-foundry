@@ -39,11 +39,11 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-toast',
             '@radix-ui/react-tooltip',
           ],
-          // Heavy libraries - loaded on demand
+          // Heavy libraries - loaded on demand (not in manualChunks so they load lazily)
           'vendor-charts': ['recharts'],
           'vendor-excel': ['xlsx'],
-          'vendor-pdf': ['jspdf', 'jspdf-autotable'],
-          'vendor-map': ['mapbox-gl'],
+          // Note: jspdf and mapbox-gl are dynamically imported and not included here
+          // to ensure they load lazily only when needed
           // Data fetching
           'vendor-query': ['@tanstack/react-query'],
           // Supabase
