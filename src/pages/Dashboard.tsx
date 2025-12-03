@@ -111,7 +111,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className={`grid gap-3 md:gap-4 ${isAdmin ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3'}`}>
           <StatsCard
             title="Total Products"
             value={isLoading ? "..." : stats?.productsCount || 0}
@@ -130,64 +130,70 @@ const Dashboard = () => {
             icon={FileText}
             description={isAdmin ? "All time invoices" : "Invoices I created"}
           />
-          <StatsCard
-            title={isAdmin ? "Total Revenue" : "My Sales"}
-            value={isLoading ? "..." : `$${stats?.totalRevenue.toFixed(2)}`}
-            icon={DollarSign}
-            description={isAdmin ? "All time revenue" : "Total sales value"}
-          />
+          {isAdmin && (
+            <StatsCard
+              title="Total Revenue"
+              value={isLoading ? "..." : `$${stats?.totalRevenue.toFixed(2)}`}
+              icon={DollarSign}
+              description="All time revenue"
+            />
+          )}
         </div>
 
-        {/* Secondary Stats */}
-        <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {isAdmin ? "Payment Collection Rate" : "My Collection Rate"}
-              </CardTitle>
-              <Percent className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? "..." : `${stats?.collectionRate.toFixed(1)}%`}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Of total invoiced amount collected
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average Invoice Value</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading
-                  ? "..."
-                  : stats?.invoicesCount && stats.invoicesCount > 0
-                  ? `$${(stats.totalRevenue / stats.invoicesCount).toFixed(2)}`
-                  : "$0"}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Per invoice
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Secondary Stats - Admin Only */}
+        {isAdmin && (
+          <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Payment Collection Rate
+                </CardTitle>
+                <Percent className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? "..." : `${stats?.collectionRate.toFixed(1)}%`}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Of total invoiced amount collected
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Average Invoice Value</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading
+                    ? "..."
+                    : stats?.invoicesCount && stats.invoicesCount > 0
+                    ? `$${(stats.totalRevenue / stats.invoicesCount).toFixed(2)}`
+                    : "$0"}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Per invoice
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-        {/* Pending Payments - Full Width */}
-        <PendingPayments userId={user?.id} isAdmin={isAdmin} />
+        {/* Pending Payments - Admin Only */}
+        {isAdmin && <PendingPayments userId={user?.id} isAdmin={isAdmin} />}
 
-        {/* Charts and Lists Grid */}
-        <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-2">
-          <TopProducts />
-          <TopShops userId={user?.id} isAdmin={isAdmin} />
-        </div>
+        {/* Charts and Lists Grid - Admin Only */}
+        {isAdmin && (
+          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-2">
+            <TopProducts />
+            <TopShops userId={user?.id} isAdmin={isAdmin} />
+          </div>
+        )}
 
-        <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-2">
+        <div className={`grid gap-3 md:gap-4 grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : ''}`}>
           <LowStockAlert />
-          <RecentActivity userId={user?.id} isAdmin={isAdmin} />
+          {isAdmin && <RecentActivity userId={user?.id} isAdmin={isAdmin} />}
         </div>
       </div>
     </DashboardLayout>
