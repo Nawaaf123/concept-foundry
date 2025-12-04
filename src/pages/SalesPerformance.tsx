@@ -5,10 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, DollarSign, FileText, ShoppingBag, Users, CalendarIcon } from "lucide-react";
+import { TrendingUp, DollarSign, FileText, ShoppingBag, Users, CalendarIcon, Percent } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subWeeks, subMonths } from "date-fns";
@@ -22,6 +24,7 @@ const SalesPerformance = () => {
   const navigate = useNavigate();
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("this-month");
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
+  const [commissionRate, setCommissionRate] = useState<number>(10);
 
   const { data: userRole } = useQuery({
     queryKey: ["userRole", user?.id],
@@ -178,6 +181,7 @@ const SalesPerformance = () => {
   }
 
   const totalCollected = salesPeople?.reduce((sum, sp) => sum + sp.metrics.collectedInPeriod, 0) || 0;
+  const totalCommission = (totalCollected * commissionRate) / 100;
 
   return (
     <DashboardLayout>
@@ -191,8 +195,8 @@ const SalesPerformance = () => {
             </Badge>
           </div>
 
-          {/* Period Filter */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          {/* Period Filter & Commission Rate */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center flex-wrap">
             <Select value={periodFilter} onValueChange={(value: PeriodFilter) => setPeriodFilter(value)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Select period" />
@@ -249,20 +253,47 @@ const SalesPerformance = () => {
             <div className="text-sm text-muted-foreground">
               {format(dateRange.start, "MMM d, yyyy")} - {format(dateRange.end, "MMM d, yyyy")}
             </div>
+
+            <div className="flex items-center gap-2 ml-0 sm:ml-auto">
+              <Label htmlFor="commission-rate" className="text-sm whitespace-nowrap">Commission %</Label>
+              <Input
+                id="commission-rate"
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                className="w-20"
+              />
+            </div>
           </div>
 
-          {/* Summary Card */}
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Collected ({getPeriodLabel()})</p>
-                  <p className="text-2xl md:text-3xl font-bold text-primary">${totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Collected ({getPeriodLabel()})</p>
+                    <p className="text-2xl md:text-3xl font-bold text-primary">${totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-primary/50" />
                 </div>
-                <DollarSign className="h-8 w-8 text-primary/50" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+            <Card className="bg-green-500/5 border-green-500/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Commission ({commissionRate}%)</p>
+                    <p className="text-2xl md:text-3xl font-bold text-green-600">${totalCommission.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </div>
+                  <Percent className="h-8 w-8 text-green-500/50" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {salesPeople && salesPeople.length === 0 ? (
@@ -287,9 +318,9 @@ const SalesPerformance = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-                  <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4">
+                  <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-5">
                     {/* Amount Collected - Primary metric for commission */}
-                    <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-lg bg-primary/10 border border-primary/20 col-span-2 md:col-span-1">
+                    <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-lg bg-primary/10 border border-primary/20">
                       <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-primary/20 flex-shrink-0">
                         <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                       </div>
@@ -297,6 +328,19 @@ const SalesPerformance = () => {
                         <p className="text-xs md:text-sm text-muted-foreground">Collected</p>
                         <p className="text-lg md:text-2xl font-bold text-primary">
                           ${salesperson.metrics.collectedInPeriod.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Commission Amount */}
+                    <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                      <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-green-500/20 flex-shrink-0">
+                        <Percent className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs md:text-sm text-muted-foreground">Commission</p>
+                        <p className="text-lg md:text-2xl font-bold text-green-600">
+                          ${((salesperson.metrics.collectedInPeriod * commissionRate) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>
