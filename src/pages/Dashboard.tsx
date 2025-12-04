@@ -8,6 +8,7 @@ import { TopProducts } from "@/components/dashboard/TopProducts";
 import { TopShops } from "@/components/dashboard/TopShops";
 import { LowStockAlert } from "@/components/dashboard/LowStockAlert";
 import { PendingPayments } from "@/components/dashboard/PendingPayments";
+import { DatabaseStorage } from "@/components/dashboard/DatabaseStorage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 import { SalesMap } from "@/components/location/SalesMap";
@@ -144,7 +145,7 @@ const Dashboard = () => {
 
         {/* Secondary Stats - Admin Only */}
         {isAdmin && (
-          <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2">
+          <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -179,6 +180,7 @@ const Dashboard = () => {
                 </p>
               </CardContent>
             </Card>
+            <DatabaseStorage />
           </div>
         )}
 
