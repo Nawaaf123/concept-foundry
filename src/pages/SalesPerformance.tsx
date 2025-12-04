@@ -346,7 +346,20 @@ const SalesPerformance = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-                  <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-5">
+                  <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-6">
+                    {/* Total Revenue */}
+                    <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-lg bg-muted/50">
+                      <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-purple-500/10 flex-shrink-0">
+                        <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs md:text-sm text-muted-foreground">Revenue</p>
+                        <p className="text-lg md:text-2xl font-bold truncate">
+                          ${salesperson.metrics.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Amount Collected - Primary metric for commission */}
                     <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-lg bg-primary/10 border border-primary/20">
                       <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-primary/20 flex-shrink-0">
