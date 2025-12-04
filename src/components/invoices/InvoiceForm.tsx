@@ -67,6 +67,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [cashAmount, setCashAmount] = useState("");
   const [checkAmount, setCheckAmount] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(invoice?.discount_amount?.toString() || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddShopDialog, setShowAddShopDialog] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -214,7 +215,9 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     setItems(newItems);
   };
 
-  const totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const subtotalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const discount = parseFloat(discountAmount) || 0;
+  const totalAmount = Math.max(0, subtotalAmount - discount);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -270,6 +273,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           invoice_number: invoiceNumber,
           shop_id: shopId,
           total_amount: totalAmount,
+          discount_amount: discount,
           payment_status: paymentStatus,
           notes: notes || null,
           created_by: user?.id,
@@ -365,6 +369,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                 invoice_number: invoiceData.invoice_number,
                 created_at: invoiceData.created_at,
                 total_amount: invoiceData.total_amount,
+                discount_amount: discount,
                 payment_status: invoiceData.payment_status,
                 notes: invoiceData.notes,
                 shops: selectedShop || { name: "Unknown" },
@@ -954,11 +959,37 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           />
         </div>
 
-        <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
-          <span className="text-lg font-semibold">Total Amount:</span>
-          <span className="text-2xl font-bold text-primary">
-            ${totalAmount.toFixed(2)}
-          </span>
+        <div className="space-y-2">
+          <Label htmlFor="discount">Discount Amount</Label>
+          <Input
+            id="discount"
+            type="number"
+            step="0.01"
+            min="0"
+            max={subtotalAmount}
+            value={discountAmount}
+            onChange={(e) => setDiscountAmount(e.target.value)}
+            placeholder="0.00"
+          />
+        </div>
+
+        <div className="p-4 bg-muted rounded-lg space-y-2">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">Subtotal:</span>
+            <span>${subtotalAmount.toFixed(2)}</span>
+          </div>
+          {discount > 0 && (
+            <div className="flex justify-between items-center text-sm text-green-600">
+              <span>Discount:</span>
+              <span>-${discount.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center pt-2 border-t">
+            <span className="text-lg font-semibold">Total Amount:</span>
+            <span className="text-2xl font-bold text-primary">
+              ${totalAmount.toFixed(2)}
+            </span>
+          </div>
         </div>
       </div>
 
