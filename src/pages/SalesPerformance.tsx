@@ -245,6 +245,7 @@ const SalesPerformance = () => {
                     selected={customDateRange}
                     onSelect={setCustomDateRange}
                     numberOfMonths={2}
+                    className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
