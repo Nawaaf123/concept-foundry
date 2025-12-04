@@ -19,6 +19,7 @@ interface InvoiceData {
   invoice_number: string;
   created_at: string;
   total_amount: number;
+  discount_amount?: number;
   payment_status: string;
   notes?: string;
   shops: {
@@ -157,37 +158,64 @@ export const generateInvoicePDF = async (invoice: InvoiceData, totalPaid: number
   const boxWidth = 60;
   let boxY = yPos;
   
+  const discount = Number(invoice.discount_amount) || 0;
+  const subtotal = Number(invoice.total_amount) + discount;
+  const boxHeight = discount > 0 ? 43 : 35;
+  
   doc.setFillColor(245, 245, 245);
-  doc.rect(boxX, boxY, boxWidth, 35, "F");
+  doc.rect(boxX, boxY, boxWidth, boxHeight, "F");
   doc.setDrawColor(...darkColor);
-  doc.rect(boxX, boxY, boxWidth, 35, "S");
+  doc.rect(boxX, boxY, boxWidth, boxHeight, "S");
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   
+  let lineY = boxY + 8;
+  
+  // Subtotal (only show if there's a discount)
+  if (discount > 0) {
+    doc.text("Subtotal:", boxX + 5, lineY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`$${subtotal.toFixed(2)}`, boxX + boxWidth - 5, lineY, { align: "right" });
+    lineY += 8;
+    
+    // Discount
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(34, 197, 94); // green
+    doc.text("Discount:", boxX + 5, lineY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`-$${discount.toFixed(2)}`, boxX + boxWidth - 5, lineY, { align: "right" });
+    doc.setTextColor(...darkColor);
+    lineY += 8;
+  }
+  
   // Total Amount
-  doc.text("Total Amount:", boxX + 5, boxY + 8);
+  doc.setFont("helvetica", "normal");
+  doc.text("Total Amount:", boxX + 5, lineY);
   doc.setFont("helvetica", "bold");
-  doc.text(`$${Number(invoice.total_amount).toFixed(2)}`, boxX + boxWidth - 5, boxY + 8, { align: "right" });
+  doc.text(`$${Number(invoice.total_amount).toFixed(2)}`, boxX + boxWidth - 5, lineY, { align: "right" });
+  lineY += 8;
   
   // Total Paid
   doc.setFont("helvetica", "normal");
   doc.setTextColor(34, 197, 94); // green
-  doc.text("Total Paid:", boxX + 5, boxY + 16);
+  doc.text("Total Paid:", boxX + 5, lineY);
   doc.setFont("helvetica", "bold");
-  doc.text(`$${totalPaid.toFixed(2)}`, boxX + boxWidth - 5, boxY + 16, { align: "right" });
+  doc.text(`$${totalPaid.toFixed(2)}`, boxX + boxWidth - 5, lineY, { align: "right" });
+  lineY += 8;
   
   // Remaining
   doc.setFont("helvetica", "normal");
   doc.setTextColor(249, 115, 22); // orange
-  doc.text("Remaining:", boxX + 5, boxY + 24);
+  doc.text("Remaining:", boxX + 5, lineY);
   doc.setFont("helvetica", "bold");
-  doc.text(`$${remainingAmount.toFixed(2)}`, boxX + boxWidth - 5, boxY + 24, { align: "right" });
+  doc.text(`$${remainingAmount.toFixed(2)}`, boxX + boxWidth - 5, lineY, { align: "right" });
+  lineY += 8;
   
   // Status
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...darkColor);
-  doc.text("Status:", boxX + 5, boxY + 32);
+  doc.text("Status:", boxX + 5, lineY);
   doc.setFont("helvetica", "bold");
   const statusColor = invoice.payment_status === "paid" 
     ? [34, 197, 94] 
@@ -195,9 +223,9 @@ export const generateInvoicePDF = async (invoice: InvoiceData, totalPaid: number
     ? [249, 115, 22] 
     : [239, 68, 68];
   doc.setTextColor(...statusColor as [number, number, number]);
-  doc.text(invoice.payment_status.toUpperCase(), boxX + boxWidth - 5, boxY + 32, { align: "right" });
+  doc.text(invoice.payment_status.toUpperCase(), boxX + boxWidth - 5, lineY, { align: "right" });
   
-  yPos = boxY + 45;
+  yPos = boxY + boxHeight + 10;
   
   // Payment History
   if (invoice.payments && invoice.payments.length > 0) {
