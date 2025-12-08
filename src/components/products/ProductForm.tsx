@@ -1,7 +1,8 @@
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -13,12 +14,20 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,6 +52,12 @@ interface ProductFormProps {
 
 export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) => {
   const { toast } = useToast();
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [subcategoryOpen, setSubcategoryOpen] = useState(false);
+  const [subSubcategoryOpen, setSubSubcategoryOpen] = useState(false);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [subcategorySearch, setSubcategorySearch] = useState("");
+  const [subSubcategorySearch, setSubSubcategorySearch] = useState("");
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -57,6 +72,66 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
       image_url: product?.image_url || "",
     },
   });
+
+  const selectedCategory = form.watch("category");
+  const selectedSubcategory = form.watch("subcategory");
+
+  // Fetch all existing categories data
+  const { data: allProducts } = useQuery({
+    queryKey: ["allProductCategories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("category, subcategory, sub_subcategory");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Get unique categories
+  const categories = Array.from(
+    new Set(allProducts?.map(p => p.category).filter(Boolean) || [])
+  ).sort();
+
+  // Get subcategories for selected category
+  const subcategories = selectedCategory
+    ? Array.from(
+        new Set(
+          allProducts
+            ?.filter(p => p.category === selectedCategory)
+            .map(p => p.subcategory)
+            .filter(Boolean) || []
+        )
+      ).sort()
+    : [];
+
+  // Get sub-subcategories for selected subcategory
+  const subSubcategories = selectedCategory && selectedSubcategory
+    ? Array.from(
+        new Set(
+          allProducts
+            ?.filter(p => p.category === selectedCategory && p.subcategory === selectedSubcategory)
+            .map(p => p.sub_subcategory)
+            .filter(Boolean) || []
+        )
+      ).sort()
+    : [];
+
+  // Reset subcategory when category changes
+  useEffect(() => {
+    if (!product && selectedCategory) {
+      const currentSubcategory = form.getValues("subcategory");
+      const validSubcategories = allProducts
+        ?.filter(p => p.category === selectedCategory)
+        .map(p => p.subcategory)
+        .filter(Boolean) || [];
+      
+      if (currentSubcategory && !validSubcategories.includes(currentSubcategory)) {
+        form.setValue("subcategory", "");
+        form.setValue("sub_subcategory", "");
+      }
+    }
+  }, [selectedCategory, allProducts]);
 
   const mutation = useMutation({
     mutationFn: async (values: ProductFormValues) => {
@@ -102,6 +177,18 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
     mutation.mutate(values);
   };
 
+  const filteredCategories = categories.filter(cat =>
+    cat.toLowerCase().includes(categorySearch.toLowerCase())
+  );
+
+  const filteredSubcategories = subcategories.filter(sub =>
+    sub.toLowerCase().includes(subcategorySearch.toLowerCase())
+  );
+
+  const filteredSubSubcategories = subSubcategories.filter(sub =>
+    sub.toLowerCase().includes(subSubcategorySearch.toLowerCase())
+  );
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -138,43 +225,262 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
           )}
         />
 
+        {/* Category Combobox */}
         <FormField
           control={form.control}
           name="category"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Category</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter category" {...field} />
-              </FormControl>
+              <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={categoryOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {field.value || "Select or type category..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search or add category..."
+                      value={categorySearch}
+                      onValueChange={setCategorySearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {categorySearch && (
+                          <CommandItem
+                            onSelect={() => {
+                              field.onChange(categorySearch);
+                              setCategoryOpen(false);
+                              setCategorySearch("");
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add "{categorySearch}"
+                          </CommandItem>
+                        )}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {filteredCategories.map((category) => (
+                          <CommandItem
+                            key={category}
+                            value={category}
+                            onSelect={() => {
+                              field.onChange(category);
+                              setCategoryOpen(false);
+                              setCategorySearch("");
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === category ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {category}
+                          </CommandItem>
+                        ))}
+                        {categorySearch && !filteredCategories.includes(categorySearch) && filteredCategories.length > 0 && (
+                          <CommandItem
+                            onSelect={() => {
+                              field.onChange(categorySearch);
+                              setCategoryOpen(false);
+                              setCategorySearch("");
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add "{categorySearch}"
+                          </CommandItem>
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Subcategory Combobox */}
         <FormField
           control={form.control}
           name="subcategory"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Subcategory</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter subcategory" {...field} />
-              </FormControl>
+              <Popover open={subcategoryOpen} onOpenChange={setSubcategoryOpen}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={subcategoryOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {field.value || "Select or type subcategory..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search or add subcategory..."
+                      value={subcategorySearch}
+                      onValueChange={setSubcategorySearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {subcategorySearch && (
+                          <CommandItem
+                            onSelect={() => {
+                              field.onChange(subcategorySearch);
+                              setSubcategoryOpen(false);
+                              setSubcategorySearch("");
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add "{subcategorySearch}"
+                          </CommandItem>
+                        )}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {filteredSubcategories.map((subcategory) => (
+                          <CommandItem
+                            key={subcategory}
+                            value={subcategory}
+                            onSelect={() => {
+                              field.onChange(subcategory);
+                              setSubcategoryOpen(false);
+                              setSubcategorySearch("");
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === subcategory ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {subcategory}
+                          </CommandItem>
+                        ))}
+                        {subcategorySearch && !filteredSubcategories.includes(subcategorySearch) && filteredSubcategories.length > 0 && (
+                          <CommandItem
+                            onSelect={() => {
+                              field.onChange(subcategorySearch);
+                              setSubcategoryOpen(false);
+                              setSubcategorySearch("");
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add "{subcategorySearch}"
+                          </CommandItem>
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Sub-subcategory Combobox */}
         <FormField
           control={form.control}
           name="sub_subcategory"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Sub-subcategory (Optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter sub-subcategory" {...field} />
-              </FormControl>
+              <Popover open={subSubcategoryOpen} onOpenChange={setSubSubcategoryOpen}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={subSubcategoryOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {field.value || "Select or type sub-subcategory..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search or add sub-subcategory..."
+                      value={subSubcategorySearch}
+                      onValueChange={setSubSubcategorySearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {subSubcategorySearch && (
+                          <CommandItem
+                            onSelect={() => {
+                              field.onChange(subSubcategorySearch);
+                              setSubSubcategoryOpen(false);
+                              setSubSubcategorySearch("");
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add "{subSubcategorySearch}"
+                          </CommandItem>
+                        )}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {filteredSubSubcategories.map((subSub) => (
+                          <CommandItem
+                            key={subSub}
+                            value={subSub}
+                            onSelect={() => {
+                              field.onChange(subSub);
+                              setSubSubcategoryOpen(false);
+                              setSubSubcategorySearch("");
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === subSub ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {subSub}
+                          </CommandItem>
+                        ))}
+                        {subSubcategorySearch && !filteredSubSubcategories.includes(subSubcategorySearch) && filteredSubSubcategories.length > 0 && (
+                          <CommandItem
+                            onSelect={() => {
+                              field.onChange(subSubcategorySearch);
+                              setSubSubcategoryOpen(false);
+                              setSubSubcategorySearch("");
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add "{subSubcategorySearch}"
+                          </CommandItem>
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
