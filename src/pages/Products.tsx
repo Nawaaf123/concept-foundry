@@ -124,7 +124,13 @@ const Products = () => {
       });
       return;
     }
-    setEditingProduct(null);
+    // Pre-fill with current filter selections
+    const prefillData = {
+      category: categoryFilter !== "all" ? categoryFilter : "",
+      subcategory: subcategoryFilter !== "all" ? subcategoryFilter : "",
+      sub_subcategory: subSubcategoryFilter !== "all" ? subSubcategoryFilter : "",
+    };
+    setEditingProduct(prefillData);
     setIsFormOpen(true);
   };
 
@@ -159,7 +165,9 @@ const Products = () => {
           {isAdmin && (
             <Button onClick={handleAddProduct} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
-              Add Product
+              {categoryFilter !== "all" 
+                ? `Add to ${subSubcategoryFilter !== "all" ? subSubcategoryFilter : subcategoryFilter !== "all" ? subcategoryFilter : categoryFilter}`
+                : "Add Product"}
             </Button>
           )}
         </div>
@@ -232,11 +240,12 @@ const Products = () => {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {editingProduct ? "Edit Product" : "Add New Product"}
+                {editingProduct?.id ? "Edit Product" : "Add New Product"}
               </DialogTitle>
             </DialogHeader>
             <ProductForm
-              product={editingProduct}
+              product={editingProduct?.id ? editingProduct : null}
+              prefillCategories={!editingProduct?.id ? editingProduct : null}
               onSuccess={handleFormSuccess}
               onCancel={() => setIsFormOpen(false)}
             />
