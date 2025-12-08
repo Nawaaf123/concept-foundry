@@ -46,11 +46,16 @@ type ProductFormValues = z.infer<typeof productSchema>;
 
 interface ProductFormProps {
   product?: any;
+  prefillCategories?: {
+    category?: string;
+    subcategory?: string;
+    sub_subcategory?: string;
+  } | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) => {
+export const ProductForm = ({ product, prefillCategories, onSuccess, onCancel }: ProductFormProps) => {
   const { toast } = useToast();
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [subcategoryOpen, setSubcategoryOpen] = useState(false);
@@ -64,9 +69,9 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
     defaultValues: {
       name: product?.name || "",
       price: product?.price || 0,
-      category: product?.category || "",
-      subcategory: product?.subcategory || "",
-      sub_subcategory: product?.sub_subcategory || "",
+      category: product?.category || prefillCategories?.category || "",
+      subcategory: product?.subcategory || prefillCategories?.subcategory || "",
+      sub_subcategory: product?.sub_subcategory || prefillCategories?.sub_subcategory || "",
       stock_quantity: product?.stock_quantity || 0,
       low_stock_threshold: product?.low_stock_threshold || 10,
       image_url: product?.image_url || "",
