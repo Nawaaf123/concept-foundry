@@ -11,17 +11,6 @@ export const LocationTracker = () => {
 
     let watchId: number;
 
-    const deleteLocation = async () => {
-      try {
-        await supabase
-          .from("user_locations")
-          .delete()
-          .eq("user_id", user.id);
-      } catch (error) {
-        console.error("Error deleting location:", error);
-      }
-    };
-
     const startTracking = () => {
       if ("geolocation" in navigator) {
         watchId = navigator.geolocation.watchPosition(
@@ -63,12 +52,10 @@ export const LocationTracker = () => {
 
     startTracking();
 
-    // Cleanup: delete location when component unmounts (user leaves/signs out)
     return () => {
       if (watchId) {
         navigator.geolocation.clearWatch(watchId);
       }
-      deleteLocation();
     };
   }, [user]);
 
