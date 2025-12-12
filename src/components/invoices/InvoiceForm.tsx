@@ -32,7 +32,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { Plus, Trash2, Pencil, ChevronsUpDown, Check, MapPin, Mail, Loader2 } from "lucide-react";
+import { Plus, Trash2, ChevronsUpDown, Check, MapPin, Mail, Loader2, Minus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateInvoicePDF } from "@/lib/pdfGenerator";
 import { Input } from "@/components/ui/input";
@@ -51,10 +51,6 @@ interface InvoiceItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
-  categoryFilter?: string;
-  subcategoryFilter?: string;
-  subSubcategoryFilter?: string;
-  isEditing?: boolean;
 }
 
 export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) => {
@@ -74,7 +70,11 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [sendEmail, setSendEmail] = useState(true);
   const [useCustomEmail, setUseCustomEmail] = useState(false);
   const [customEmail, setCustomEmail] = useState("");
-
+  
+  // Quick add product filters
+  const [quickAddCategory, setQuickAddCategory] = useState("all");
+  const [quickAddSubcategory, setQuickAddSubcategory] = useState("all");
+  const [quickAddSubSubcategory, setQuickAddSubSubcategory] = useState("all");
   const getShopLocation = (shop: any) => {
     const parts = [shop.city, shop.state].filter(Boolean);
     return parts.length > 0 ? parts.join(", ") : null;
@@ -149,44 +149,46 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     );
   };
 
-  const getFilteredProducts = (item: InvoiceItem) => {
+  const getQuickFilteredProducts = () => {
     if (!products) return [];
     let filtered = products;
     
-    if (item.categoryFilter && item.categoryFilter !== "all") {
-      filtered = filtered.filter(p => p.category === item.categoryFilter);
+    if (quickAddCategory && quickAddCategory !== "all") {
+      filtered = filtered.filter(p => p.category === quickAddCategory);
     }
-    if (item.subcategoryFilter && item.subcategoryFilter !== "all") {
-      filtered = filtered.filter(p => p.subcategory === item.subcategoryFilter);
+    if (quickAddSubcategory && quickAddSubcategory !== "all") {
+      filtered = filtered.filter(p => p.subcategory === quickAddSubcategory);
     }
-    if (item.subSubcategoryFilter && item.subSubcategoryFilter !== "all") {
-      filtered = filtered.filter(p => p.sub_subcategory === item.subSubcategoryFilter);
+    if (quickAddSubSubcategory && quickAddSubSubcategory !== "all") {
+      filtered = filtered.filter(p => p.sub_subcategory === quickAddSubSubcategory);
     }
     
     return filtered;
   };
 
-  const addItem = () => {
-    setItems([
-      ...items,
-      {
-        product_id: "",
-        product_name: "",
-        quantity: 1,
-        unit_price: 0,
-        subtotal: 0,
-        categoryFilter: "all",
-        subcategoryFilter: "all",
-        subSubcategoryFilter: "all",
-        isEditing: true,
-      },
-    ]);
-  };
-
-  const toggleEditItem = (index: number) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], isEditing: !newItems[index].isEditing };
-    setItems(newItems);
+  const quickAddProduct = (product: any) => {
+    const existingIndex = items.findIndex(item => item.product_id === product.id);
+    
+    if (existingIndex >= 0) {
+      // Product already in cart, increment quantity
+      const newItems = [...items];
+      newItems[existingIndex].quantity += 1;
+      newItems[existingIndex].subtotal = newItems[existingIndex].quantity * newItems[existingIndex].unit_price;
+      setItems(newItems);
+    } else {
+      // Add new product
+      const price = Number(product.price) || 0;
+      setItems([
+        ...items,
+        {
+          product_id: product.id,
+          product_name: product.name,
+          quantity: 1,
+          unit_price: price,
+          subtotal: price,
+        },
+      ]);
+    }
   };
 
   const removeItem = (index: number) => {
@@ -203,7 +205,6 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         const price = Number(product.price) || 0;
         newItems[index].product_name = product.name;
         newItems[index].unit_price = price;
-        // Recalculate subtotal after setting product price
         newItems[index].subtotal = newItems[index].quantity * price;
       }
     }
@@ -653,216 +654,147 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         })()}
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label>Products *</Label>
-            <Button type="button" variant="outline" size="sm" onClick={addItem}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
+          <Label>Products *</Label>
+          
+          {/* Quick Add Product Section - Mobile Friendly */}
+          <div className="border-2 border-dashed rounded-lg p-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Select
+                value={quickAddCategory}
+                onValueChange={(value) => {
+                  setQuickAddCategory(value);
+                  setQuickAddSubcategory("all");
+                  setQuickAddSubSubcategory("all");
+                }}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select
+                value={quickAddSubcategory}
+                onValueChange={(value) => {
+                  setQuickAddSubcategory(value);
+                  setQuickAddSubSubcategory("all");
+                }}
+                disabled={quickAddCategory === "all"}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Subcategory" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subcategories</SelectItem>
+                  {getSubcategories(quickAddCategory).map((sub) => (
+                    <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select
+                value={quickAddSubSubcategory}
+                onValueChange={setQuickAddSubSubcategory}
+                disabled={quickAddSubcategory === "all"}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Sub-subcategory" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {getSubSubcategories(quickAddCategory, quickAddSubcategory).map((subsub) => (
+                    <SelectItem key={subsub} value={subsub}>{subsub}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Product Grid - Tap to Add */}
+            <div className="max-h-48 overflow-y-auto">
+              {getQuickFilteredProducts().length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  No products found. Try adjusting filters.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {getQuickFilteredProducts().map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => quickAddProduct(product)}
+                      className="p-3 border rounded-lg text-left hover:bg-accent hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <div className="font-medium text-sm truncate">{product.name}</div>
+                      <div className="text-xs text-muted-foreground">${Number(product.price).toFixed(2)}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
+          {/* Added Items List */}
           {items.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-              No products added. Click "Add Product" to start.
+            <div className="text-center py-4 text-muted-foreground text-sm">
+              Tap a product above to add it to the invoice
             </div>
           ) : (
             <div className="space-y-2">
+              <div className="text-sm font-medium text-muted-foreground">
+                {items.length} item{items.length !== 1 ? 's' : ''} added
+              </div>
               {items.map((item, index) => (
-                <div key={index} className="border rounded-lg">
-                  {/* Compact View - when product is selected and not editing */}
-                  {item.product_id && !item.isEditing ? (
-                    <div className="flex items-center justify-between p-3 gap-2">
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium truncate block">{item.product_name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {item.quantity} × ${item.unit_price.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="font-semibold text-primary whitespace-nowrap">
-                        ${item.subtotal.toFixed(2)}
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => toggleEditItem(index)}
-                          className="h-8 w-8"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(index)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-card">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{item.product_name}</div>
+                    <div className="text-xs text-muted-foreground">${item.unit_price.toFixed(2)} each</div>
+                  </div>
+                  
+                  {/* Quantity Controls - Large Touch Targets */}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 shrink-0"
+                      onClick={() => {
+                        if (item.quantity > 1) {
+                          updateItem(index, "quantity", item.quantity - 1);
+                        } else {
+                          removeItem(index);
+                        }
+                      }}
+                    >
+                      {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <span className="text-lg font-bold">−</span>}
+                    </Button>
+                    <div className="w-12 text-center">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)}
+                        className="h-10 text-center px-1 font-semibold"
+                      />
                     </div>
-                  ) : (
-                    /* Full Edit View - when adding or editing */
-                    <div className="p-4 space-y-3">
-                      {/* Category Filters */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <div>
-                          <Label className="text-xs">Category</Label>
-                          <Select
-                            value={item.categoryFilter || "all"}
-                            onValueChange={(value) => {
-                              const newItems = [...items];
-                              newItems[index] = {
-                                ...newItems[index],
-                                categoryFilter: value,
-                                subcategoryFilter: "all",
-                                subSubcategoryFilter: "all",
-                                product_id: "",
-                                product_name: "",
-                                unit_price: 0,
-                                subtotal: 0,
-                              };
-                              setItems(newItems);
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All categories" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Categories</SelectItem>
-                              {categories.map((cat) => (
-                                <SelectItem key={cat} value={cat}>
-                                  {cat}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-xs">Subcategory</Label>
-                          <Select
-                            value={item.subcategoryFilter || "all"}
-                            onValueChange={(value) => {
-                              const newItems = [...items];
-                              newItems[index] = {
-                                ...newItems[index],
-                                subcategoryFilter: value,
-                                subSubcategoryFilter: "all",
-                                product_id: "",
-                                product_name: "",
-                                unit_price: 0,
-                                subtotal: 0,
-                              };
-                              setItems(newItems);
-                            }}
-                            disabled={!item.categoryFilter || item.categoryFilter === "all"}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All subcategories" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Subcategories</SelectItem>
-                              {getSubcategories(item.categoryFilter || "").map((sub) => (
-                                <SelectItem key={sub} value={sub}>
-                                  {sub}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-xs">Sub-subcategory</Label>
-                          <Select
-                            value={item.subSubcategoryFilter || "all"}
-                            onValueChange={(value) => {
-                              const newItems = [...items];
-                              newItems[index] = {
-                                ...newItems[index],
-                                subSubcategoryFilter: value,
-                                product_id: "",
-                                product_name: "",
-                                unit_price: 0,
-                                subtotal: 0,
-                              };
-                              setItems(newItems);
-                            }}
-                            disabled={!item.subcategoryFilter || item.subcategoryFilter === "all"}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All</SelectItem>
-                              {getSubSubcategories(item.categoryFilter || "", item.subcategoryFilter || "").map((subsub) => (
-                                <SelectItem key={subsub} value={subsub}>
-                                  {subsub}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      {/* Product Selection and Quantity */}
-                      <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-                        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          <div className="col-span-2">
-                            <Label className="text-xs">Product</Label>
-                            <Select
-                              value={item.product_id}
-                              onValueChange={(value) => {
-                                updateItem(index, "product_id", value);
-                                // Auto-collapse after selecting product using functional update
-                                setTimeout(() => {
-                                  setItems(currentItems => 
-                                    currentItems.map((currentItem, i) => 
-                                      i === index ? { ...currentItem, isEditing: false } : currentItem
-                                    )
-                                  );
-                                }, 100);
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select product" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getFilteredProducts(item).map((product) => (
-                                  <SelectItem key={product.id} value={product.id}>
-                                    {product.name} - ${Number(product.price).toFixed(2)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-xs">Quantity</Label>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                updateItem(index, "quantity", parseInt(e.target.value) || 1)
-                              }
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Subtotal</Label>
-                            <Input value={`$${item.subtotal.toFixed(2)}`} disabled />
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(index)}
-                          className="self-end sm:self-auto"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 shrink-0"
+                      onClick={() => updateItem(index, "quantity", item.quantity + 1)}
+                    >
+                      <span className="text-lg font-bold">+</span>
+                    </Button>
+                  </div>
+                  
+                  <div className="text-right min-w-[70px]">
+                    <div className="font-semibold text-primary">${item.subtotal.toFixed(2)}</div>
+                  </div>
                 </div>
               ))}
             </div>
