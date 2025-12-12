@@ -8,6 +8,7 @@ import { ProductTable } from "@/components/products/ProductTable";
 import { ProductForm } from "@/components/products/ProductForm";
 import { QuickAddProduct } from "@/components/products/QuickAddProduct";
 import { BulkProductUploadDialog } from "@/components/products/BulkProductUploadDialog";
+import { AddCategoryDialog } from "@/components/products/AddCategoryDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -56,6 +57,19 @@ const Products = () => {
   const categories = Array.from(
     new Set(allProducts?.map(p => p.category).filter(Boolean) || [])
   );
+
+  // Build subcategories map for AddCategoryDialog
+  const subcategoriesMap: Record<string, string[]> = {};
+  categories.forEach(cat => {
+    subcategoriesMap[cat] = Array.from(
+      new Set(
+        allProducts
+          ?.filter(p => p.category === cat)
+          .map(p => p.subcategory)
+          .filter(Boolean) || []
+      )
+    );
+  });
 
   // Get subcategories filtered by selected category
   const subcategories = categoryFilter === "all"
@@ -232,6 +246,7 @@ const Products = () => {
           </div>
           {isAdmin && (
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <AddCategoryDialog categories={categories} subcategoriesMap={subcategoriesMap} />
               <BulkProductUploadDialog
                 categoryFilter={categoryFilter}
                 subcategoryFilter={subcategoryFilter}
