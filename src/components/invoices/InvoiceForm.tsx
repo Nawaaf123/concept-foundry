@@ -471,22 +471,22 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 w-full overflow-x-hidden">
+      <div className="space-y-4 w-full">
         <div className="space-y-2">
           <Label htmlFor="shop">Shop *</Label>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Popover open={shopOpen} onOpenChange={setShopOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={shopOpen}
-                  className="flex-1 justify-between font-normal"
+                  className="w-full justify-between font-normal h-12"
                 >
                   {shopId ? (
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="truncate">
+                    <div className="flex flex-col items-start text-left overflow-hidden">
+                      <span className="truncate w-full">
                         {shops?.find((shop) => shop.id === shopId)?.name}
                       </span>
                       {(() => {
@@ -506,9 +506,9 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="start">
+              <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[400px] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Search shops by name or location..." />
+                  <CommandInput placeholder="Search shops..." />
                   <CommandList>
                     <CommandEmpty>No shop found.</CommandEmpty>
                     <CommandGroup>
@@ -525,12 +525,12 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                           >
                             <Check
                               className={cn(
-                                "mr-2 h-4 w-4",
+                                "mr-2 h-4 w-4 shrink-0",
                                 shopId === shop.id ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            <div className="flex flex-col">
-                              <span className="font-medium">{shop.name}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-medium truncate">{shop.name}</span>
                               {location && (
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <MapPin className="h-3 w-3" />
@@ -550,10 +550,10 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
               type="button"
               variant="outline"
               onClick={() => setShowAddShopDialog(true)}
-              className="flex-shrink-0"
+              className="w-full sm:w-auto h-12 shrink-0"
             >
-              <Plus className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Add Shop</span>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Shop
             </Button>
           </div>
         </div>
@@ -749,19 +749,24 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                 {items.length} item{items.length !== 1 ? 's' : ''} added
               </div>
               {items.map((item, index) => (
-                <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-card">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{item.product_name}</div>
-                    <div className="text-xs text-muted-foreground">${item.unit_price.toFixed(2)} each</div>
+                <div key={index} className="p-3 border rounded-lg bg-card space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm truncate">{item.product_name}</div>
+                      <div className="text-xs text-muted-foreground">${item.unit_price.toFixed(2)} each</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-semibold text-primary">${item.subtotal.toFixed(2)}</div>
+                    </div>
                   </div>
                   
-                  {/* Quantity Controls - Large Touch Targets */}
-                  <div className="flex items-center gap-1">
+                  {/* Quantity Controls - Full Width on Mobile */}
+                  <div className="flex items-center justify-center gap-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10 shrink-0"
+                      className="h-11 w-11 shrink-0"
                       onClick={() => {
                         if (item.quantity > 1) {
                           updateItem(index, "quantity", item.quantity - 1);
@@ -770,30 +775,24 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                         }
                       }}
                     >
-                      {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <span className="text-lg font-bold">−</span>}
+                      {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-5 w-5" />}
                     </Button>
-                    <div className="w-12 text-center">
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)}
-                        className="h-10 text-center px-1 font-semibold"
-                      />
-                    </div>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)}
+                      className="h-11 w-16 text-center px-2 font-semibold text-lg"
+                    />
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10 shrink-0"
+                      className="h-11 w-11 shrink-0"
                       onClick={() => updateItem(index, "quantity", item.quantity + 1)}
                     >
-                      <span className="text-lg font-bold">+</span>
+                      <Plus className="h-5 w-5" />
                     </Button>
-                  </div>
-                  
-                  <div className="text-right min-w-[70px]">
-                    <div className="font-semibold text-primary">${item.subtotal.toFixed(2)}</div>
                   </div>
                 </div>
               ))}
@@ -837,7 +836,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
               )}
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="cash_amount">Cash Amount</Label>
                 <Input
@@ -848,6 +847,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                   value={cashAmount}
                   onChange={(e) => setCashAmount(e.target.value)}
                   placeholder="0.00"
+                  className="h-12"
                 />
               </div>
               
@@ -861,6 +861,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                   value={checkAmount}
                   onChange={(e) => setCheckAmount(e.target.value)}
                   placeholder="0.00"
+                  className="h-12"
                 />
               </div>
             </div>
