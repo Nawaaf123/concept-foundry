@@ -6,6 +6,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductTable } from "@/components/products/ProductTable";
 import { ProductForm } from "@/components/products/ProductForm";
+import { QuickAddProduct } from "@/components/products/QuickAddProduct";
+import { BulkProductUploadDialog } from "@/components/products/BulkProductUploadDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -229,12 +231,19 @@ const Products = () => {
             <p className="text-sm md:text-base text-muted-foreground">Manage your product catalog</p>
           </div>
           {isAdmin && (
-            <Button onClick={handleAddProduct} className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              {categoryFilter !== "all" 
-                ? `Add to ${subSubcategoryFilter !== "all" ? subSubcategoryFilter : subcategoryFilter !== "all" ? subcategoryFilter : categoryFilter}`
-                : "Add Product"}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <BulkProductUploadDialog
+                categoryFilter={categoryFilter}
+                subcategoryFilter={subcategoryFilter}
+                subSubcategoryFilter={subSubcategoryFilter}
+              />
+              <Button onClick={handleAddProduct} className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                {categoryFilter !== "all" 
+                  ? `Add to ${subSubcategoryFilter !== "all" ? subSubcategoryFilter : subcategoryFilter !== "all" ? subcategoryFilter : categoryFilter}`
+                  : "Add Product"}
+              </Button>
+            </div>
           )}
         </div>
 
@@ -311,6 +320,14 @@ const Products = () => {
             </AlertDialog>
           )}
         </div>
+
+        {isAdmin && (
+          <QuickAddProduct
+            categoryFilter={categoryFilter}
+            subcategoryFilter={subcategoryFilter}
+            subSubcategoryFilter={subSubcategoryFilter}
+          />
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
