@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductTable } from "@/components/products/ProductTable";
 import { ProductForm } from "@/components/products/ProductForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -154,6 +155,71 @@ const Products = () => {
     refetchAllProducts();
   };
 
+  const handleDeleteCategory = async () => {
+    if (!isAdmin || categoryFilter === "all") return;
+
+    try {
+      // Determine what level we're deleting
+      if (subSubcategoryFilter !== "all") {
+        // Delete sub-subcategory: set sub_subcategory to null for matching products
+        await supabase
+          .from("products")
+          .update({ sub_subcategory: null })
+          .eq("category", categoryFilter)
+          .eq("subcategory", subcategoryFilter)
+          .eq("sub_subcategory", subSubcategoryFilter);
+        
+        toast({
+          title: "Sub-subcategory removed",
+          description: `"${subSubcategoryFilter}" has been removed from all products`,
+        });
+        setSubSubcategoryFilter("all");
+      } else if (subcategoryFilter !== "all") {
+        // Delete subcategory: set subcategory and sub_subcategory to null
+        await supabase
+          .from("products")
+          .update({ subcategory: null, sub_subcategory: null })
+          .eq("category", categoryFilter)
+          .eq("subcategory", subcategoryFilter);
+        
+        toast({
+          title: "Subcategory removed",
+          description: `"${subcategoryFilter}" has been removed from all products`,
+        });
+        setSubcategoryFilter("all");
+      } else {
+        // Delete category: set category, subcategory, and sub_subcategory to null
+        await supabase
+          .from("products")
+          .update({ category: "Uncategorized", subcategory: null, sub_subcategory: null })
+          .eq("category", categoryFilter);
+        
+        toast({
+          title: "Category removed",
+          description: `"${categoryFilter}" has been removed. Products moved to Uncategorized.`,
+        });
+        setCategoryFilter("all");
+      }
+      
+      refetch();
+      refetchAllProducts();
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getDeleteLabel = () => {
+    if (subSubcategoryFilter !== "all") return subSubcategoryFilter;
+    if (subcategoryFilter !== "all") return subcategoryFilter;
+    if (categoryFilter !== "all") return categoryFilter;
+    return "";
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-4 md:space-y-6">
@@ -222,6 +288,28 @@ const Products = () => {
               ))}
             </SelectContent>
           </Select>
+
+          {isAdmin && categoryFilter !== "all" && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon" className="shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete "{getDeleteLabel()}"?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will remove the {subSubcategoryFilter !== "all" ? "sub-subcategory" : subcategoryFilter !== "all" ? "subcategory" : "category"} from all products. The products will remain but without this categorization.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteCategory}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
 
         {isLoading ? (
