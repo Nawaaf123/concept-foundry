@@ -433,8 +433,9 @@ export const ProductForm = ({ product, prefillCategories, onSuccess, onCancel }:
                       onValueChange={setSubSubcategorySearch}
                     />
                     <CommandList>
-                      <CommandEmpty>
-                        {subSubcategorySearch && (
+                      <CommandEmpty>No sub-subcategory found.</CommandEmpty>
+                      <CommandGroup>
+                        {subSubcategorySearch && !filteredSubSubcategories.includes(subSubcategorySearch) && (
                           <CommandItem
                             onSelect={() => {
                               field.onChange(subSubcategorySearch);
@@ -447,8 +448,6 @@ export const ProductForm = ({ product, prefillCategories, onSuccess, onCancel }:
                             Add "{subSubcategorySearch}"
                           </CommandItem>
                         )}
-                      </CommandEmpty>
-                      <CommandGroup>
                         {filteredSubSubcategories.map((subSub) => (
                           <CommandItem
                             key={subSub}
@@ -468,19 +467,6 @@ export const ProductForm = ({ product, prefillCategories, onSuccess, onCancel }:
                             {subSub}
                           </CommandItem>
                         ))}
-                        {subSubcategorySearch && !filteredSubSubcategories.includes(subSubcategorySearch) && filteredSubSubcategories.length > 0 && (
-                          <CommandItem
-                            onSelect={() => {
-                              field.onChange(subSubcategorySearch);
-                              setSubSubcategoryOpen(false);
-                              setSubSubcategorySearch("");
-                            }}
-                            className="cursor-pointer"
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add "{subSubcategorySearch}"
-                          </CommandItem>
-                        )}
                       </CommandGroup>
                     </CommandList>
                   </Command>
