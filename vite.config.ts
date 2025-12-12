@@ -19,35 +19,20 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Core React libraries
+          // Core React libraries - always needed
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // UI components library
-          'vendor-radix': [
-            '@radix-ui/react-accordion',
-            '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-label',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-select',
-            '@radix-ui/react-separator',
+          // Core Radix primitives used on auth page
+          'vendor-radix-core': [
             '@radix-ui/react-slot',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-toast',
-            '@radix-ui/react-tooltip',
+            '@radix-ui/react-label',
           ],
-          // Heavy libraries - loaded on demand (not in manualChunks so they load lazily)
+          // Heavy libraries - loaded on demand
           'vendor-charts': ['recharts'],
           'vendor-excel': ['xlsx'],
-          // Note: jspdf and mapbox-gl are dynamically imported and not included here
-          // to ensure they load lazily only when needed
           // Data fetching
           'vendor-query': ['@tanstack/react-query'],
-          // Supabase
-          'vendor-supabase': ['@supabase/supabase-js'],
+          // Note: Supabase and other Radix components are NOT in manualChunks
+          // so they get code-split per page, reducing initial bundle size
         },
       },
     },
