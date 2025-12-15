@@ -2,17 +2,19 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, FileDown } from "lucide-react";
+import { Plus, FileDown, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { InvoiceDialog } from "@/components/invoices/InvoiceDialog";
 import { InvoiceFilters } from "@/components/invoices/InvoiceFilters";
+import { AddOldBalanceDialog } from "@/components/invoices/AddOldBalanceDialog";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { exportInvoicesToExcel } from "@/lib/excelGenerator";
 
 const Invoices = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isOldBalanceDialogOpen, setIsOldBalanceDialogOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -191,6 +193,14 @@ const Invoices = () => {
               <FileDown className="mr-2 h-4 w-4" />
               {isExporting ? "Exporting..." : "Export"}
             </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsOldBalanceDialogOpen(true)}
+              className="w-full sm:w-auto"
+            >
+              <History className="mr-2 h-4 w-4" />
+              Add Old Balance
+            </Button>
             <Button onClick={handleAddInvoice} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Create Invoice
@@ -234,6 +244,12 @@ const Invoices = () => {
           onOpenChange={setIsDialogOpen}
           invoice={editingInvoice}
           onSuccess={handleDialogClose}
+        />
+
+        <AddOldBalanceDialog
+          open={isOldBalanceDialogOpen}
+          onOpenChange={setIsOldBalanceDialogOpen}
+          onSuccess={refetch}
         />
       </div>
     </DashboardLayout>
