@@ -356,6 +356,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
           return (
             <ShopInvoiceGroup
               key={shopId}
+              shopId={shopId}
               shopName={shopName}
               shopLocation={shopLocation}
               invoices={shopInvoices}
@@ -373,6 +374,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
               onDistributePayment={handleDistributePayment}
               isAdmin={isAdmin}
               profiles={profiles}
+              onRefetch={onRefetch}
             />
           );
         })}

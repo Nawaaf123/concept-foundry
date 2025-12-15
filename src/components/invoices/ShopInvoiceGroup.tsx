@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, DollarSign } from "lucide-react";
+import { ChevronDown, ChevronRight, DollarSign, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,8 +12,10 @@ import {
 } from "@/components/ui/table";
 import { Eye, Edit, Download, Trash2, Mail, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { AddLegacyBalanceDialog } from "./AddLegacyBalanceDialog";
 
 interface ShopInvoiceGroupProps {
+  shopId: string;
   shopName: string;
   shopLocation: string;
   invoices: any[];
@@ -28,9 +30,11 @@ interface ShopInvoiceGroupProps {
   onDistributePayment: (shopName: string, invoices: any[], totalPending: number) => void;
   isAdmin: boolean;
   profiles?: { id: string; full_name: string }[];
+  onRefetch?: () => void;
 }
 
 export const ShopInvoiceGroup = ({
+  shopId,
   shopName,
   shopLocation,
   invoices,
@@ -45,8 +49,10 @@ export const ShopInvoiceGroup = ({
   onDistributePayment,
   isAdmin,
   profiles,
+  onRefetch,
 }: ShopInvoiceGroupProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [legacyBalanceDialogOpen, setLegacyBalanceDialogOpen] = useState(false);
 
   const getPendingAmount = (invoiceId: string, totalAmount: number) => {
     const invoicePayments = allPayments?.filter(p => p.invoice_id === invoiceId) || [];
@@ -107,7 +113,7 @@ export const ShopInvoiceGroup = ({
                 </Badge>
               </div>
               
-              <div className="flex flex-wrap items-center gap-3 md:gap-4">
+              <div className="flex flex-wrap items-center gap-2 md:gap-4">
                 <div className="text-left sm:text-right">
                   <p className="text-xs text-muted-foreground">Total</p>
                   <p className="text-lg md:text-xl font-bold">${totalAmount.toFixed(2)}</p>
@@ -118,16 +124,29 @@ export const ShopInvoiceGroup = ({
                     ${totalPending.toFixed(2)}
                   </p>
                 </div>
-                {totalPending > 0 && (
+                <div className="flex gap-2">
                   <Button
-                    onClick={() => onDistributePayment(shopName, invoicesWithPending, totalPending)}
+                    onClick={() => setLegacyBalanceDialogOpen(true)}
                     size="sm"
+                    variant="outline"
                     className="w-full sm:w-auto"
+                    title="Add old/legacy balance for this shop"
                   >
-                    <DollarSign className="h-4 w-4 mr-1" />
-                    Pay
+                    <Plus className="h-4 w-4 mr-1" />
+                    <span className="hidden sm:inline">Old Balance</span>
+                    <span className="sm:hidden">Balance</span>
                   </Button>
-                )}
+                  {totalPending > 0 && (
+                    <Button
+                      onClick={() => onDistributePayment(shopName, invoicesWithPending, totalPending)}
+                      size="sm"
+                      className="w-full sm:w-auto"
+                    >
+                      <DollarSign className="h-4 w-4 mr-1" />
+                      Pay
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -313,6 +332,15 @@ export const ShopInvoiceGroup = ({
           </div>
         </>
       )}
+
+      {/* Legacy Balance Dialog */}
+      <AddLegacyBalanceDialog
+        open={legacyBalanceDialogOpen}
+        onOpenChange={setLegacyBalanceDialogOpen}
+        shopId={shopId}
+        shopName={shopName}
+        onSuccess={onRefetch}
+      />
     </div>
   );
 };
