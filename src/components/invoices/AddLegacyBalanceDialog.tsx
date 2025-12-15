@@ -47,7 +47,7 @@ export const AddLegacyBalanceDialog = ({
       
       if (invoiceNumberError) throw invoiceNumberError;
 
-      // Create the legacy balance invoice
+      // Create the legacy balance invoice (no invoice items needed for legacy balance)
       const { data: invoice, error: invoiceError } = await supabase
         .from("invoices")
         .insert({
@@ -62,20 +62,6 @@ export const AddLegacyBalanceDialog = ({
         .single();
 
       if (invoiceError) throw invoiceError;
-
-      // Create a single invoice item for the legacy balance
-      const { error: itemError } = await supabase
-        .from("invoice_items")
-        .insert({
-          invoice_id: invoice.id,
-          product_id: "00000000-0000-0000-0000-000000000000", // Placeholder UUID for legacy balance
-          product_name: "Legacy Balance - Opening Balance",
-          quantity: 1,
-          unit_price: parseFloat(amount),
-          subtotal: parseFloat(amount),
-        });
-
-      if (itemError) throw itemError;
 
       return invoice;
     },
