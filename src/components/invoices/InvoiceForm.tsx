@@ -264,8 +264,27 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         }
       }
 
-      // Generate invoice number
-      const { data: invoiceNumber } = await supabase.rpc("generate_invoice_number");
+      // Generate invoice number with retry logic
+      let invoiceNumber: string | null = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (!invoiceNumber && retryCount < maxRetries) {
+        const { data, error: rpcError } = await supabase.rpc("generate_invoice_number");
+        if (rpcError) {
+          console.error("Invoice number generation error:", rpcError);
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } else {
+          invoiceNumber = data;
+        }
+      }
+      
+      if (!invoiceNumber) {
+        throw new Error("Failed to generate invoice number. Please try again.");
+      }
 
       // Create invoice
       const { data: invoiceData, error: invoiceError } = await supabase
