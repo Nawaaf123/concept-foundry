@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, DollarSign, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, DollarSign, Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,6 +23,7 @@ interface ShopInvoiceGroupProps {
   onViewInvoice: (invoice: any) => void;
   onRecordPayment: (invoice: any) => void;
   onUpdateStatus: (invoice: any) => void;
+  onEditInvoice: (invoice: any) => void;
   onExportPDF: (invoice: any) => void;
   onSendEmail: (invoice: any) => void;
   sendingEmailId: string | null;
@@ -42,6 +43,7 @@ export const ShopInvoiceGroup = ({
   onViewInvoice,
   onRecordPayment,
   onUpdateStatus,
+  onEditInvoice,
   onExportPDF,
   onSendEmail,
   sendingEmailId,
@@ -195,7 +197,12 @@ export const ShopInvoiceGroup = ({
                         </Button>
                       )}
                       {isAdmin && (
-                        <Button variant="outline" size="sm" onClick={() => onUpdateStatus(invoice)}>
+                        <Button variant="outline" size="sm" onClick={() => onEditInvoice(invoice)} title="Edit Invoice">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {isAdmin && (
+                        <Button variant="outline" size="sm" onClick={() => onUpdateStatus(invoice)} title="Update Status">
                           <Edit className="h-4 w-4" />
                         </Button>
                       )}
@@ -278,6 +285,16 @@ export const ShopInvoiceGroup = ({
                               title="Record Payment"
                             >
                               <DollarSign className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onEditInvoice(invoice)}
+                              title="Edit Invoice"
+                            >
+                              <Pencil className="h-4 w-4" />
                             </Button>
                           )}
                           {isAdmin && (

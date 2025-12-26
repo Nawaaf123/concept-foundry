@@ -220,10 +220,12 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const discount = parseFloat(discountAmount) || 0;
   const totalAmount = Math.max(0, subtotalAmount - discount);
 
+  const isEditMode = !!invoice?.id;
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (isSubmitting) {
-        throw new Error("Please wait, invoice is being created");
+        throw new Error("Please wait, invoice is being processed");
       }
 
       setIsSubmitting(true);
@@ -232,17 +234,18 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         throw new Error("Please select a shop and add at least one product");
       }
 
-      // Validate email if sending is enabled
       const selectedShop = shops?.find(s => s.id === shopId);
-      if (sendEmail) {
+      
+      // Validate email if sending is enabled (only for new invoices)
+      if (!isEditMode && sendEmail) {
         const emailTo = useCustomEmail || !selectedShop?.email ? customEmail : selectedShop?.email;
         if (!emailTo || !emailTo.includes("@")) {
           throw new Error("Please provide a valid email address to send the invoice");
         }
       }
 
-      // Validate payment amounts if paid or partial
-      if (paymentStatus === "paid" || paymentStatus === "partial") {
+      // Validate payment amounts if paid or partial (only for new invoices)
+      if (!isEditMode && (paymentStatus === "paid" || paymentStatus === "partial")) {
         const cash = parseFloat(cashAmount) || 0;
         const check = parseFloat(checkAmount) || 0;
         const totalPayment = cash + check;
@@ -251,7 +254,6 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           throw new Error("Please enter payment amounts for cash and/or check");
         }
 
-        // Use tolerance-based comparison to handle floating-point precision issues
         const tolerance = 0.01;
         const difference = Math.abs(totalPayment - totalAmount);
 
@@ -264,126 +266,180 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         }
       }
 
-      // Generate invoice number with retry logic
-      let invoiceNumber: string | null = null;
-      let retryCount = 0;
-      const maxRetries = 3;
-      
-      while (!invoiceNumber && retryCount < maxRetries) {
-        const { data, error: rpcError } = await supabase.rpc("generate_invoice_number");
-        if (rpcError) {
-          console.error("Invoice number generation error:", rpcError);
-          retryCount++;
-          if (retryCount < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        } else {
-          invoiceNumber = data;
-        }
-      }
-      
-      if (!invoiceNumber) {
-        throw new Error("Failed to generate invoice number. Please try again.");
-      }
+      let invoiceData: any;
+      let invoiceItems: any[];
 
-      // Create invoice
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .from("invoices")
-        .insert({
-          invoice_number: invoiceNumber,
-          shop_id: shopId,
-          total_amount: totalAmount,
-          discount_amount: discount,
-          payment_status: paymentStatus,
-          notes: notes || null,
-          created_by: user?.id,
-        })
-        .select()
-        .single();
+      if (isEditMode) {
+        // UPDATE existing invoice
+        const { data: updatedInvoice, error: invoiceError } = await supabase
+          .from("invoices")
+          .update({
+            shop_id: shopId,
+            total_amount: totalAmount,
+            discount_amount: discount,
+            notes: notes || null,
+          })
+          .eq("id", invoice.id)
+          .select()
+          .single();
 
-      if (invoiceError) throw invoiceError;
+        if (invoiceError) throw invoiceError;
+        invoiceData = updatedInvoice;
 
-      // Create invoice items
-      const invoiceItems = items.map((item) => ({
-        invoice_id: invoiceData.id,
-        product_id: item.product_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        subtotal: item.subtotal,
-      }));
+        // Delete existing invoice items and recreate
+        const { error: deleteError } = await supabase
+          .from("invoice_items")
+          .delete()
+          .eq("invoice_id", invoice.id);
 
-      const { error: itemsError } = await supabase
-        .from("invoice_items")
-        .insert(invoiceItems);
+        if (deleteError) throw deleteError;
 
-      if (itemsError) throw itemsError;
+        // Create new invoice items
+        invoiceItems = items.map((item) => ({
+          invoice_id: invoice.id,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+        }));
 
-      // Create payment records if paid or partial
-      if (paymentStatus === "paid" || paymentStatus === "partial") {
-        const cash = parseFloat(cashAmount) || 0;
-        const check = parseFloat(checkAmount) || 0;
+        const { error: itemsError } = await supabase
+          .from("invoice_items")
+          .insert(invoiceItems);
 
-        const paymentRecords = [];
+        if (itemsError) throw itemsError;
+
+      } else {
+        // CREATE new invoice
+        let invoiceNumber: string | null = null;
+        let retryCount = 0;
+        const maxRetries = 3;
         
-        if (cash > 0) {
-          paymentRecords.push({
-            invoice_id: invoiceData.id,
-            amount: cash,
-            payment_method: "cash" as const,
-            created_by: user?.id,
-          });
+        while (!invoiceNumber && retryCount < maxRetries) {
+          const { data, error: rpcError } = await supabase.rpc("generate_invoice_number");
+          if (rpcError) {
+            console.error("Invoice number generation error:", rpcError);
+            retryCount++;
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+          } else {
+            invoiceNumber = data;
+          }
+        }
+        
+        if (!invoiceNumber) {
+          throw new Error("Failed to generate invoice number. Please try again.");
         }
 
-        if (check > 0) {
-          paymentRecords.push({
-            invoice_id: invoiceData.id,
-            amount: check,
-            payment_method: "check" as const,
+        const { data: newInvoice, error: invoiceError } = await supabase
+          .from("invoices")
+          .insert({
+            invoice_number: invoiceNumber,
+            shop_id: shopId,
+            total_amount: totalAmount,
+            discount_amount: discount,
+            payment_status: paymentStatus,
+            notes: notes || null,
             created_by: user?.id,
-          });
+          })
+          .select()
+          .single();
+
+        if (invoiceError) throw invoiceError;
+        invoiceData = newInvoice;
+
+        invoiceItems = items.map((item) => ({
+          invoice_id: invoiceData.id,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from("invoice_items")
+          .insert(invoiceItems);
+
+        if (itemsError) throw itemsError;
+
+        // Create payment records if paid or partial (only for new invoices)
+        if (paymentStatus === "paid" || paymentStatus === "partial") {
+          const cash = parseFloat(cashAmount) || 0;
+          const check = parseFloat(checkAmount) || 0;
+
+          const paymentRecords = [];
+          
+          if (cash > 0) {
+            paymentRecords.push({
+              invoice_id: invoiceData.id,
+              amount: cash,
+              payment_method: "cash" as const,
+              created_by: user?.id,
+            });
+          }
+
+          if (check > 0) {
+            paymentRecords.push({
+              invoice_id: invoiceData.id,
+              amount: check,
+              payment_method: "check" as const,
+              created_by: user?.id,
+            });
+          }
+
+          if (paymentRecords.length > 0) {
+            const { error: paymentsError } = await supabase
+              .from("payments")
+              .insert(paymentRecords);
+
+            if (paymentsError) throw paymentsError;
+          }
         }
 
-        if (paymentRecords.length > 0) {
-          const { error: paymentsError } = await supabase
-            .from("payments")
-            .insert(paymentRecords);
-
-          if (paymentsError) throw paymentsError;
+        // Update product stock (only for new invoices)
+        for (const item of items) {
+          const product = products?.find(p => p.id === item.product_id);
+          if (product) {
+            const { error: stockError } = await supabase
+              .from("products")
+              .update({ 
+                stock_quantity: product.stock_quantity - item.quantity 
+              })
+              .eq("id", item.product_id);
+            if (stockError) console.error("Stock update error:", stockError);
+          }
         }
       }
 
-      // Update product stock
-      for (const item of items) {
-        const product = products?.find(p => p.id === item.product_id);
-        if (product) {
-          const { error: stockError } = await supabase
-            .from("products")
-            .update({ 
-              stock_quantity: product.stock_quantity - item.quantity 
-            })
-            .eq("id", item.product_id);
-          if (stockError) console.error("Stock update error:", stockError);
-        }
-      }
-
-      return { invoiceData, invoiceItems };
+      return { invoiceData, invoiceItems, isEditMode };
     },
-    onSuccess: async ({ invoiceData, invoiceItems }) => {
-      // Send email if enabled
+    onSuccess: async ({ invoiceData, invoiceItems, isEditMode: wasEdit }) => {
+      if (wasEdit) {
+        // Simple success for edit mode
+        toast({
+          title: "Success",
+          description: "Invoice updated successfully",
+        });
+        setIsSubmitting(false);
+        onSuccess();
+        return;
+      }
+
+      // Send email if enabled (only for new invoices)
       if (sendEmail) {
         const selectedShop = shops?.find(s => s.id === shopId);
         const emailTo = useCustomEmail || !selectedShop?.email ? customEmail : selectedShop?.email;
         
         if (emailTo && emailTo.includes("@")) {
           try {
-            // Calculate payment amounts
             const cash = parseFloat(cashAmount) || 0;
             const check = parseFloat(checkAmount) || 0;
             const totalPaid = cash + check;
             const remainingAmount = totalAmount - totalPaid;
 
-            // Generate PDF
             const doc = generateInvoicePDF(
               {
                 invoice_number: invoiceData.invoice_number,
@@ -408,11 +464,9 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
               remainingAmount
             );
 
-            // Convert to base64
             const pdfDoc = await doc;
             const pdfBase64 = pdfDoc.output('datauristring').split(',')[1];
 
-            // Send email via edge function
             const { error: emailError } = await supabase.functions.invoke('send-invoice-email', {
               body: {
                 to: emailTo,
@@ -464,7 +518,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       setIsSubmitting(false);
       toast({
         title: "Error",
-        description: error.message || "Failed to create invoice",
+        description: error.message || `Failed to ${isEditMode ? 'update' : 'create'} invoice`,
         variant: "destructive",
       });
     },
@@ -621,53 +675,55 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                 </div>
               </div>
 
-              {/* Email Invoice Section */}
-              <div className="border-t pt-4 space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="send_email" 
-                    checked={sendEmail} 
-                    onCheckedChange={(checked) => setSendEmail(checked as boolean)}
-                  />
-                  <Label htmlFor="send_email" className="flex items-center gap-2 cursor-pointer">
-                    <Mail className="h-4 w-4" />
-                    Send invoice to customer via email
-                  </Label>
-                </div>
-
-                {sendEmail && (
-                  <div className="ml-6 space-y-3">
-                    {selectedShop.email && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">Will send to:</span>
-                        <span className="font-medium">{useCustomEmail ? customEmail || "Enter email below" : selectedShop.email}</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="use_custom_email" 
-                        checked={useCustomEmail || !selectedShop.email} 
-                        onCheckedChange={(checked) => setUseCustomEmail(checked as boolean)}
-                        disabled={!selectedShop.email}
-                      />
-                      <Label htmlFor="use_custom_email" className="text-sm cursor-pointer">
-                        {selectedShop.email ? "Use a different email address" : "No email on file - enter email below"}
-                      </Label>
-                    </div>
-
-                    {(useCustomEmail || !selectedShop.email) && (
-                      <Input
-                        type="email"
-                        placeholder="Enter customer email address"
-                        value={customEmail}
-                        onChange={(e) => setCustomEmail(e.target.value)}
-                        className="max-w-sm"
-                      />
-                    )}
+              {/* Email Invoice Section - only show for new invoices */}
+              {!isEditMode && (
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="send_email" 
+                      checked={sendEmail} 
+                      onCheckedChange={(checked) => setSendEmail(checked as boolean)}
+                    />
+                    <Label htmlFor="send_email" className="flex items-center gap-2 cursor-pointer">
+                      <Mail className="h-4 w-4" />
+                      Send invoice to customer via email
+                    </Label>
                   </div>
-                )}
-              </div>
+
+                  {sendEmail && (
+                    <div className="ml-6 space-y-3">
+                      {selectedShop.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">Will send to:</span>
+                          <span className="font-medium">{useCustomEmail ? customEmail || "Enter email below" : selectedShop.email}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="use_custom_email" 
+                          checked={useCustomEmail || !selectedShop.email} 
+                          onCheckedChange={(checked) => setUseCustomEmail(checked as boolean)}
+                          disabled={!selectedShop.email}
+                        />
+                        <Label htmlFor="use_custom_email" className="text-sm cursor-pointer">
+                          {selectedShop.email ? "Use a different email address" : "No email on file - enter email below"}
+                        </Label>
+                      </div>
+
+                      {(useCustomEmail || !selectedShop.email) && (
+                        <Input
+                          type="email"
+                          placeholder="Enter customer email address"
+                          value={customEmail}
+                          onChange={(e) => setCustomEmail(e.target.value)}
+                          className="max-w-sm"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })()}
@@ -819,85 +875,90 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="payment_status">Initial Payment Status *</Label>
-          <Select 
-            value={paymentStatus} 
-            onValueChange={(value: "paid" | "partial" | "unpaid") => {
-              setPaymentStatus(value);
-              // Reset payment amounts when changing status
-              if (value === "unpaid") {
-                setCashAmount("");
-                setCheckAmount("");
-              }
-            }} 
-            required
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select payment status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="paid">Paid - Full payment received</SelectItem>
-              <SelectItem value="partial">Partial - Some payment received</SelectItem>
-              <SelectItem value="unpaid">Unpaid - No payment received</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {(paymentStatus === "paid" || paymentStatus === "partial") && (
-          <div className="p-4 border rounded-lg space-y-4 bg-muted/30">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Payment Details</Label>
-              {paymentStatus === "paid" && (
-                <span className="text-sm text-muted-foreground">
-                  Must equal ${totalAmount.toFixed(2)}
-                </span>
-              )}
+        {/* Payment status section - only show for new invoices */}
+        {!isEditMode && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="payment_status">Initial Payment Status *</Label>
+              <Select 
+                value={paymentStatus} 
+                onValueChange={(value: "paid" | "partial" | "unpaid") => {
+                  setPaymentStatus(value);
+                  // Reset payment amounts when changing status
+                  if (value === "unpaid") {
+                    setCashAmount("");
+                    setCheckAmount("");
+                  }
+                }} 
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Paid - Full payment received</SelectItem>
+                  <SelectItem value="partial">Partial - Some payment received</SelectItem>
+                  <SelectItem value="unpaid">Unpaid - No payment received</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="cash_amount">Cash Amount</Label>
-                <Input
-                  id="cash_amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={cashAmount}
-                  onChange={(e) => setCashAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="h-12"
-                />
+
+            {(paymentStatus === "paid" || paymentStatus === "partial") && (
+              <div className="p-4 border rounded-lg space-y-4 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Payment Details</Label>
+                  {paymentStatus === "paid" && (
+                    <span className="text-sm text-muted-foreground">
+                      Must equal ${totalAmount.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="cash_amount">Cash Amount</Label>
+                    <Input
+                      id="cash_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={cashAmount}
+                      onChange={(e) => setCashAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="check_amount">Check Amount</Label>
+                    <Input
+                      id="check_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={checkAmount}
+                      onChange={(e) => setCheckAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="h-12"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-sm font-medium">Total Payment:</span>
+                  <span className="text-lg font-bold text-primary">
+                    ${((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0)).toFixed(2)}
+                  </span>
+                </div>
+
+                {paymentStatus === "partial" && (
+                  <p className="text-xs text-muted-foreground">
+                    Remaining balance: ${(totalAmount - ((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0))).toFixed(2)}
+                  </p>
+                )}
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="check_amount">Check Amount</Label>
-                <Input
-                  id="check_amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={checkAmount}
-                  onChange={(e) => setCheckAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="h-12"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-2 border-t">
-              <span className="text-sm font-medium">Total Payment:</span>
-              <span className="text-lg font-bold text-primary">
-                ${((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0)).toFixed(2)}
-              </span>
-            </div>
-
-            {paymentStatus === "partial" && (
-              <p className="text-xs text-muted-foreground">
-                Remaining balance: ${(totalAmount - ((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0))).toFixed(2)}
-              </p>
             )}
-          </div>
+          </>
         )}
 
         <div className="space-y-2">
@@ -950,7 +1011,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           Cancel
         </Button>
         <Button type="submit" disabled={mutation.isPending || isSubmitting} className="w-full sm:w-auto">
-          {mutation.isPending || isSubmitting ? "Creating..." : "Create Invoice"}
+          {mutation.isPending || isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Invoice" : "Create Invoice")}
         </Button>
       </div>
 

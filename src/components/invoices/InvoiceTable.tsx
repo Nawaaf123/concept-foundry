@@ -364,6 +364,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
               onViewInvoice={handleViewInvoice}
               onRecordPayment={handleRecordPayment}
               onUpdateStatus={handleUpdateStatus}
+              onEditInvoice={onEdit}
               onExportPDF={handleExportPDF}
               onSendEmail={handleSendEmail}
               sendingEmailId={sendingEmailId}
