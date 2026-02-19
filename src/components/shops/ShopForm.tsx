@@ -92,9 +92,12 @@ export const ShopForm = ({ shop, onSuccess, onCancel }: ShopFormProps) => {
       onSuccess();
     },
     onError: (error: any) => {
+      const isDuplicate = error?.message?.includes("unique_shop_name_address") || error?.code === "23505";
       toast({
         title: "Error",
-        description: error.message || "Failed to save shop",
+        description: isDuplicate
+          ? "A shop with this name and address already exists."
+          : error.message || "Failed to save shop",
         variant: "destructive",
       });
     },
