@@ -1,20 +1,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface StatsCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
   description?: string;
+  href?: string;
   trend?: {
     value: number;
     isPositive: boolean;
   };
 }
 
-export const StatsCard = ({ title, value, icon: Icon, description, trend }: StatsCardProps) => {
+export const StatsCard = ({ title, value, icon: Icon, description, href, trend }: StatsCardProps) => {
+  const navigate = useNavigate();
+
   return (
-    <Card>
+    <Card
+      className={href ? "cursor-pointer transition-colors hover:bg-accent/50" : ""}
+      onClick={href ? () => navigate(href) : undefined}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
         <CardTitle className="text-xs md:text-sm font-medium">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
