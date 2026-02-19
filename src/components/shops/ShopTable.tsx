@@ -9,7 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Mail, Phone, MapPin } from "lucide-react";
+import { Edit, Trash2, Mail, Phone, MapPin, ChevronDown, ChevronRight } from "lucide-react";
+import { ShopInvoices } from "./ShopInvoices";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -33,6 +34,7 @@ interface ShopTableProps {
 
 export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -81,29 +83,29 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
         {shops.map((shop) => (
           <Card key={shop.id}>
             <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-semibold text-base">{shop.name}</h3>
-                  {shop.owner_name && (
-                    <p className="text-sm text-muted-foreground">{shop.owner_name}</p>
+              <div
+                className="flex justify-between items-start mb-2 cursor-pointer"
+                onClick={() => setExpandedId(expandedId === shop.id ? null : shop.id)}
+              >
+                <div className="flex items-center gap-2">
+                  {expandedId === shop.id ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   )}
+                  <div>
+                    <h3 className="font-semibold text-base">{shop.name}</h3>
+                    {shop.owner_name && (
+                      <p className="text-sm text-muted-foreground">{shop.owner_name}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => onEdit(shop)}
-                  >
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(shop)}>
                     <Edit className="h-4 w-4" />
                   </Button>
                   {isAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setDeleteId(shop.id)}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteId(shop.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   )}
@@ -114,17 +116,13 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
                 {shop.phone && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Phone className="h-4 w-4 flex-shrink-0" />
-                    <a href={`tel:${shop.phone}`} className="hover:text-primary">
-                      {shop.phone}
-                    </a>
+                    <a href={`tel:${shop.phone}`} className="hover:text-primary">{shop.phone}</a>
                   </div>
                 )}
                 {shop.email && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="h-4 w-4 flex-shrink-0" />
-                    <a href={`mailto:${shop.email}`} className="hover:text-primary truncate">
-                      {shop.email}
-                    </a>
+                    <a href={`mailto:${shop.email}`} className="hover:text-primary truncate">{shop.email}</a>
                   </div>
                 )}
                 {(shop.street_address || shop.city || shop.state) && (
@@ -140,6 +138,12 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
                   </div>
                 )}
               </div>
+
+              {expandedId === shop.id && (
+                <div className="mt-3 pt-3 border-t">
+                  <ShopInvoices shopId={shop.id} shopName={shop.name} />
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -159,65 +163,75 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
           </TableHeader>
           <TableBody>
             {shops.map((shop) => (
-              <TableRow key={shop.id}>
-                <TableCell className="font-medium">{shop.name}</TableCell>
-                <TableCell>{shop.owner_name || "-"}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1 text-sm">
-                    {shop.phone && (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Phone className="h-3 w-3" />
-                        <span>{shop.phone}</span>
-                      </div>
-                    )}
-                    {shop.email && (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        <span>{shop.email}</span>
-                      </div>
-                    )}
-                    {!shop.phone && !shop.email && "-"}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {(shop.street_address || shop.city || shop.state) ? (
-                    <div className="flex items-start gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                      <div className="line-clamp-2">
-                        {shop.street_address && <div>{shop.street_address}</div>}
-                        {shop.street_address_line_2 && <div>{shop.street_address_line_2}</div>}
-                        {(shop.city || shop.state || shop.zip_code) && (
-                          <div>
-                            {[shop.city, shop.state, shop.zip_code].filter(Boolean).join(", ")}
-                          </div>
-                        )}
-                      </div>
+              <>
+                <TableRow
+                  key={shop.id}
+                  className="cursor-pointer hover:bg-accent/50"
+                  onClick={() => setExpandedId(expandedId === shop.id ? null : shop.id)}
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {expandedId === shop.id ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      {shop.name}
                     </div>
-                  ) : (
-                    "-"
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit(shop)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    {isAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteId(shop.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                  </TableCell>
+                  <TableCell>{shop.owner_name || "-"}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1 text-sm">
+                      {shop.phone && (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Phone className="h-3 w-3" />
+                          <span>{shop.phone}</span>
+                        </div>
+                      )}
+                      {shop.email && (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Mail className="h-3 w-3" />
+                          <span>{shop.email}</span>
+                        </div>
+                      )}
+                      {!shop.phone && !shop.email && "-"}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {(shop.street_address || shop.city || shop.state) ? (
+                      <div className="flex items-start gap-1 text-sm text-muted-foreground">
+                        <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <div className="line-clamp-2">
+                          {shop.street_address && <div>{shop.street_address}</div>}
+                          {shop.street_address_line_2 && <div>{shop.street_address_line_2}</div>}
+                          {(shop.city || shop.state || shop.zip_code) && (
+                            <div>{[shop.city, shop.state, shop.zip_code].filter(Boolean).join(", ")}</div>
+                          )}
+                        </div>
+                      </div>
+                    ) : "-"}
+                  </TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => onEdit(shop)}>
+                        <Edit className="h-4 w-4" />
                       </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
+                      {isAdmin && (
+                        <Button variant="ghost" size="sm" onClick={() => setDeleteId(shop.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {expandedId === shop.id && (
+                  <TableRow key={`${shop.id}-invoices`}>
+                    <TableCell colSpan={5} className="bg-muted/30 p-4">
+                      <ShopInvoices shopId={shop.id} shopName={shop.name} />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
             ))}
           </TableBody>
         </Table>
