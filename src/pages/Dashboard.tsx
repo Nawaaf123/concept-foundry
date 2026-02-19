@@ -120,18 +120,21 @@ const Dashboard = () => {
             value={isLoading ? "..." : stats?.productsCount || 0}
             icon={Package}
             description="Active products in catalog"
+            href="/products"
           />
           <StatsCard
             title="Total Shops"
             value={isLoading ? "..." : stats?.shopsCount || 0}
             icon={ShoppingBag}
             description="Customer shops registered"
+            href="/shops"
           />
           <StatsCard
             title={isAdmin ? "Total Invoices" : "My Invoices"}
             value={isLoading ? "..." : stats?.invoicesCount || 0}
             icon={FileText}
             description={isAdmin ? "All time invoices" : "Invoices I created"}
+            href="/invoices"
           />
           {isAdmin && (
             <StatsCard
