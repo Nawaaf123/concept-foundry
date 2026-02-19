@@ -50,10 +50,13 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
       setDeleteId(null);
       onRefetch();
     },
-    onError: () => {
+    onError: (error: any) => {
+      const isFkError = error?.message?.includes("foreign key constraint") || error?.code === "23503";
       toast({
         title: "Error",
-        description: "Failed to delete shop",
+        description: isFkError
+          ? "Cannot delete this shop because it has invoices linked to it. Delete the invoices first."
+          : "Failed to delete shop",
         variant: "destructive",
       });
       setDeleteId(null);
