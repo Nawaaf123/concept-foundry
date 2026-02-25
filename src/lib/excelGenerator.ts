@@ -121,8 +121,64 @@ export const exportInvoicesToExcel = async () => {
       };
     }) || [];
 
+    // Create Shop Balances Sheet
+    const shopBalancesMap: Record<string, { 
+      shopName: string; ownerName: string; phone: string; location: string;
+      totalInvoiced: number; totalPaid: number; cashPaid: number; checkPaid: number;
+      invoiceCount: number; unpaidCount: number;
+    }> = {};
+
+    invoices.forEach(invoice => {
+      const shopId = invoice.shop_id;
+      const payments = allPayments?.filter(p => p.invoice_id === invoice.id) || [];
+      const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const cashPaid = payments.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + Number(p.amount), 0);
+      const checkPaid = payments.filter(p => p.payment_method === 'check').reduce((sum, p) => sum + Number(p.amount), 0);
+
+      if (!shopBalancesMap[shopId]) {
+        const location = [invoice.shops?.city, invoice.shops?.state, invoice.shops?.zip_code].filter(Boolean).join(', ') || 'N/A';
+        shopBalancesMap[shopId] = {
+          shopName: invoice.shops?.name || 'N/A',
+          ownerName: invoice.shops?.owner_name || 'N/A',
+          phone: invoice.shops?.phone || 'N/A',
+          location,
+          totalInvoiced: 0, totalPaid: 0, cashPaid: 0, checkPaid: 0,
+          invoiceCount: 0, unpaidCount: 0,
+        };
+      }
+      const shop = shopBalancesMap[shopId];
+      shop.totalInvoiced += Number(invoice.total_amount);
+      shop.totalPaid += totalPaid;
+      shop.cashPaid += cashPaid;
+      shop.checkPaid += checkPaid;
+      shop.invoiceCount += 1;
+      if (invoice.payment_status !== 'paid') shop.unpaidCount += 1;
+    });
+
+    const shopBalancesData = Object.values(shopBalancesMap)
+      .map(shop => ({
+        'Shop Name': shop.shopName,
+        'Owner': shop.ownerName,
+        'Phone': shop.phone,
+        'Location': shop.location,
+        'Total Invoices': shop.invoiceCount,
+        'Unpaid Invoices': shop.unpaidCount,
+        'Total Invoiced': shop.totalInvoiced.toFixed(2),
+        'Total Paid': shop.totalPaid.toFixed(2),
+        'Cash Paid': shop.cashPaid.toFixed(2),
+        'Check Paid': shop.checkPaid.toFixed(2),
+        'Remaining Balance': (shop.totalInvoiced - shop.totalPaid).toFixed(2),
+      }))
+      .filter(shop => Number(shop['Remaining Balance']) > 0)
+      .sort((a, b) => Number(b['Remaining Balance']) - Number(a['Remaining Balance']));
+
     // Create workbook and sheets
     const wb = XLSX.utils.book_new();
+
+    if (shopBalancesData.length > 0) {
+      const balancesWs = XLSX.utils.json_to_sheet(shopBalancesData);
+      XLSX.utils.book_append_sheet(wb, balancesWs, 'Shop Balances');
+    }
     
     const summaryWs = XLSX.utils.json_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, summaryWs, 'Invoice Summary');
@@ -136,7 +192,9 @@ export const exportInvoicesToExcel = async () => {
     }
 
     // Auto-size columns
-    [summaryWs, detailsWs].forEach(ws => {
+    const allSheets = [summaryWs, detailsWs];
+    if (shopBalancesData.length > 0) allSheets.unshift(wb.Sheets['Shop Balances']);
+    allSheets.forEach(ws => {
       const cols: any[] = [];
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
       for (let C = range.s.c; C <= range.e.c; ++C) {
