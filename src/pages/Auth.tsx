@@ -111,16 +111,6 @@ const Auth = () => {
               {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <Button
-              variant="link"
-              className="p-0 h-auto font-normal text-primary"
-              onClick={() => setIsLogin(!isLogin)}
-            >
-              {isLogin ? "Sign Up" : "Sign In"}
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>
