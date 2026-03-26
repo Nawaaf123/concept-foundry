@@ -35,6 +35,7 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
+        <InstallPromptBanner />
         <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
             <Routes>
