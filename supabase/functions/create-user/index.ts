@@ -71,7 +71,7 @@ serve(async (req) => {
       );
     }
 
-    if (!['admin', 'sales'].includes(role)) {
+    if (!['admin', 'sales', 'srour'].includes(role)) {
       return new Response(
         JSON.stringify({ error: 'Invalid role' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
