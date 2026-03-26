@@ -66,6 +66,8 @@ const Invoices = () => {
   });
 
   const isAdmin = userRole === "admin";
+  const isSrour = userRole === "srour";
+  const canEditAll = isAdmin || isSrour;
 
   const { data: invoices, isLoading, refetch } = useQuery({
     queryKey: ["invoices", searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo],
@@ -233,7 +235,7 @@ const Invoices = () => {
           <InvoiceTable
             invoices={invoices || []}
             onEdit={handleEditInvoice}
-            isAdmin={isAdmin}
+            isAdmin={canEditAll}
             onRefetch={refetch}
             profiles={profiles || []}
           />

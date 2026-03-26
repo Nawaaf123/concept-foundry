@@ -57,12 +57,12 @@ const Users = () => {
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any>(null);
-  const [newRole, setNewRole] = useState<"admin" | "sales">("sales");
+  const [newRole, setNewRole] = useState<"admin" | "sales" | "srour">("sales");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     fullName: "",
-    role: "sales" as "admin" | "sales"
+    role: "sales" as "admin" | "sales" | "srour"
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
@@ -117,7 +117,7 @@ const Users = () => {
   });
 
   const createUserMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string; fullName: string; role: "admin" | "sales" }) => {
+    mutationFn: async (data: { email: string; password: string; fullName: string; role: "admin" | "sales" | "srour" }) => {
       // Call edge function to create user with admin privileges
       const { data: result, error } = await supabase.functions.invoke('create-user', {
         body: {
@@ -154,7 +154,7 @@ const Users = () => {
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "sales" }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "sales" | "srour" }) => {
       // Check if role exists
       const { data: existingRole } = await supabase
         .from("user_roles")
@@ -259,12 +259,22 @@ const Users = () => {
   };
 
   const getRoleBadge = (role: string) => {
-    return role === "admin" ? (
-      <Badge className="flex items-center gap-1 w-fit">
-        <Shield className="h-3 w-3" />
-        Admin
-      </Badge>
-    ) : (
+    if (role === "admin") {
+      return (
+        <Badge className="flex items-center gap-1 w-fit">
+          <Shield className="h-3 w-3" />
+          Admin
+        </Badge>
+      );
+    } else if (role === "srour") {
+      return (
+        <Badge variant="outline" className="flex items-center gap-1 w-fit border-primary text-primary">
+          <Shield className="h-3 w-3" />
+          Srour
+        </Badge>
+      );
+    }
+    return (
       <Badge variant="secondary" className="flex items-center gap-1 w-fit">
         <User className="h-3 w-3" />
         Sales
@@ -418,7 +428,7 @@ const Users = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select value={newRole} onValueChange={(value: "admin" | "sales") => setNewRole(value)}>
+                <Select value={newRole} onValueChange={(value: "admin" | "sales" | "srour") => setNewRole(value)}>
                   <SelectTrigger id="role">
                     <SelectValue />
                   </SelectTrigger>
@@ -433,6 +443,12 @@ const Users = () => {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4" />
                         Sales
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="srour">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Srour
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -511,7 +527,7 @@ const Users = () => {
               <Label htmlFor="userRole">Role</Label>
               <Select 
                 value={formData.role} 
-                onValueChange={(value: "admin" | "sales") => setFormData({ ...formData, role: value })}
+                onValueChange={(value: "admin" | "sales" | "srour") => setFormData({ ...formData, role: value })}
               >
                 <SelectTrigger id="userRole">
                   <SelectValue />
@@ -527,6 +543,12 @@ const Users = () => {
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4" />
                       Admin
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="srour">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Srour
                     </div>
                   </SelectItem>
                 </SelectContent>
