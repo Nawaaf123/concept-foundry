@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { InstallPromptBanner } from "@/components/InstallPromptBanner";
 
 // Lazy load pages for code splitting
 const Index = lazy(() => import("./pages/Index"));
