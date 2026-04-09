@@ -46,7 +46,7 @@ export const DatabaseStorage = () => {
           <span className="text-muted-foreground">
             {isLoading ? "..." : stats?.totalSize}
           </span>
-          <span className="text-muted-foreground">{maxStorageMB} MB</span>
+          <span className="text-muted-foreground">{(maxStorageMB / 1024).toFixed(0)} GB</span>
         </div>
         <Progress value={isLoading ? 0 : usagePercent} className="h-2" />
         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-2">
