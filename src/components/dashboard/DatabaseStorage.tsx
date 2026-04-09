@@ -31,9 +31,16 @@ export const DatabaseStorage = () => {
     },
   });
 
-  const maxStorageMB = 8192; // 8 GB disk space
-  const usageMB = stats ? stats.totalBytes / (1024 * 1024) : 0;
-  const usagePercent = Math.min((usageMB / maxStorageMB) * 100, 100);
+  const maxStorageBytes = 8 * 1024 * 1024 * 1024; // 8 GB
+  const totalBytes = stats?.totalBytes || 0;
+  const usagePercent = Math.min((totalBytes / maxStorageBytes) * 100, 100);
+
+  const formatSize = (bytes: number) => {
+    if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    if (bytes >= 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+    return `${bytes} bytes`;
+  };
 
   return (
     <Card>
@@ -43,10 +50,10 @@ export const DatabaseStorage = () => {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            {isLoading ? "..." : stats?.totalSize}
+          <span className="font-semibold">
+            {isLoading ? "..." : formatSize(totalBytes)}
           </span>
-          <span className="text-muted-foreground">{(maxStorageMB / 1024).toFixed(0)} GB</span>
+          <span className="text-muted-foreground">8 GB</span>
         </div>
         <Progress value={isLoading ? 0 : usagePercent} className="h-2" />
         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-2">
