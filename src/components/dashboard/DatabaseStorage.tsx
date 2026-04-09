@@ -31,7 +31,7 @@ export const DatabaseStorage = () => {
     },
   });
 
-  const maxStorageMB = 500;
+  const maxStorageMB = 1024;
   const usageMB = stats ? stats.totalBytes / (1024 * 1024) : 0;
   const usagePercent = Math.min((usageMB / maxStorageMB) * 100, 100);
 
