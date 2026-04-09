@@ -327,6 +327,13 @@ export type Database = {
     }
     Functions: {
       generate_invoice_number: { Args: never; Returns: string }
+      get_database_size: {
+        Args: never
+        Returns: {
+          total_bytes: number
+          total_size: string
+        }[]
+      }
       get_sales_by_category: {
         Args: never
         Returns: {
