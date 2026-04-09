@@ -8,40 +8,16 @@ export const TopProducts = () => {
   const { data: topProducts, isLoading } = useQuery({
     queryKey: ["top-products"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("invoice_items")
-        .select(`
-          product_id,
-          product_name,
-          quantity
-        `);
-      
-      if (error) throw error;
-
-      // Aggregate by product
-      const productMap = new Map();
-      data.forEach((item) => {
-        const existing = productMap.get(item.product_id);
-        if (existing) {
-          existing.quantity += item.quantity;
-        } else {
-          productMap.set(item.product_id, {
-            product_name: item.product_name,
-            quantity: item.quantity,
-          });
-        }
+      const { data, error } = await supabase.rpc("get_top_products", {
+        limit_count: 5,
       });
 
-      // Convert to array and sort by quantity
-      const products = Array.from(productMap.values())
-        .sort((a, b) => b.quantity - a.quantity)
-        .slice(0, 5);
-
-      return products;
+      if (error) throw error;
+      return data as { product_name: string; total_quantity: number }[];
     },
   });
 
-  const maxQuantity = topProducts?.[0]?.quantity || 1;
+  const maxQuantity = topProducts?.[0]?.total_quantity || 1;
 
   return (
     <Card>
@@ -60,9 +36,9 @@ export const TopProducts = () => {
                     <Package className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">{product.product_name}</span>
                   </div>
-                  <span className="text-sm font-semibold">{product.quantity} units</span>
+                  <span className="text-sm font-semibold">{product.total_quantity} units</span>
                 </div>
-                <Progress value={(product.quantity / maxQuantity) * 100} className="h-2" />
+                <Progress value={(product.total_quantity / maxQuantity) * 100} className="h-2" />
               </div>
             ))}
           </div>

@@ -13,49 +13,18 @@ export const TopShops = ({ userId, isAdmin }: TopShopsProps) => {
   const { data: topShops, isLoading } = useQuery({
     queryKey: ["top-shops", userId, isAdmin],
     queryFn: async () => {
-      let query = supabase
-        .from("invoices")
-        .select(`
-          shop_id,
-          total_amount,
-          shops (name)
-        `);
-      
-      // Filter by user if not admin
-      if (!isAdmin && userId) {
-        query = query.eq("created_by", userId);
-      }
-
-      const { data, error } = await query;
-      
-      if (error) throw error;
-
-      // Aggregate by shop
-      const shopMap = new Map();
-      data.forEach((invoice) => {
-        const shopId = invoice.shop_id;
-        const existing = shopMap.get(shopId);
-        if (existing) {
-          existing.total += Number(invoice.total_amount);
-        } else {
-          shopMap.set(shopId, {
-            name: invoice.shops?.name || "Unknown",
-            total: Number(invoice.total_amount),
-          });
-        }
+      const { data, error } = await supabase.rpc("get_top_shops", {
+        p_user_id: isAdmin ? null : (userId ?? null),
+        p_limit: 5,
       });
 
-      // Convert to array and sort by total
-      const shops = Array.from(shopMap.values())
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 5);
-
-      return shops;
+      if (error) throw error;
+      return data as { shop_name: string; total_revenue: number }[];
     },
     enabled: !!userId,
   });
 
-  const maxTotal = topShops?.[0]?.total || 1;
+  const maxTotal = topShops?.[0]?.total_revenue || 1;
 
   return (
     <Card>
@@ -72,11 +41,11 @@ export const TopShops = ({ userId, isAdmin }: TopShopsProps) => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Store className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">{shop.name}</span>
+                    <span className="text-sm font-medium">{shop.shop_name}</span>
                   </div>
-                  <span className="text-sm font-semibold">${shop.total.toFixed(2)}</span>
+                  <span className="text-sm font-semibold">${Number(shop.total_revenue).toFixed(2)}</span>
                 </div>
-                <Progress value={(shop.total / maxTotal) * 100} className="h-2" />
+                <Progress value={(Number(shop.total_revenue) / Number(maxTotal)) * 100} className="h-2" />
               </div>
             ))}
           </div>
