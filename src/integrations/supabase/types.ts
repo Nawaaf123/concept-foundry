@@ -327,6 +327,28 @@ export type Database = {
     }
     Functions: {
       generate_invoice_number: { Args: never; Returns: string }
+      get_sales_by_category: {
+        Args: never
+        Returns: {
+          category: string
+          product_name: string
+          total_quantity: number
+        }[]
+      }
+      get_top_products: {
+        Args: { limit_count?: number }
+        Returns: {
+          product_name: string
+          total_quantity: number
+        }[]
+      }
+      get_top_shops: {
+        Args: { p_limit?: number; p_user_id?: string }
+        Returns: {
+          shop_name: string
+          total_revenue: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
