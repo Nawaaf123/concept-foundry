@@ -139,7 +139,7 @@ export const exportInvoicesToExcel = async () => {
       const checkPaid = payments.filter(p => p.payment_method === 'check').reduce((sum, p) => sum + Number(p.amount), 0);
 
       if (!shopBalancesMap[shopId]) {
-        const location = [invoice.shops?.city, invoice.shops?.state, invoice.shops?.zip_code].filter(Boolean).join(', ') || 'N/A';
+        const location = [invoice.shops?.street_address, invoice.shops?.street_address_line_2, invoice.shops?.city, invoice.shops?.state, invoice.shops?.zip_code].filter(Boolean).join(', ') || 'N/A';
         shopBalancesMap[shopId] = {
           shopName: invoice.shops?.name || 'N/A',
           ownerName: invoice.shops?.owner_name || 'N/A',
