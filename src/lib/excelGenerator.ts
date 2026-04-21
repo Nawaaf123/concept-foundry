@@ -123,7 +123,8 @@ export const exportInvoicesToExcel = async () => {
 
     // Create Shop Balances Sheet
     const shopBalancesMap: Record<string, { 
-      shopName: string; ownerName: string; phone: string; location: string;
+      shopName: string; ownerName: string; phone: string;
+      streetAddress: string; addressLine2: string; city: string; state: string; zipCode: string;
       totalInvoiced: number; totalPaid: number; cashPaid: number; checkPaid: number;
       invoiceCount: number; unpaidCount: number;
     }> = {};
@@ -136,12 +137,15 @@ export const exportInvoicesToExcel = async () => {
       const checkPaid = payments.filter(p => p.payment_method === 'check').reduce((sum, p) => sum + Number(p.amount), 0);
 
       if (!shopBalancesMap[shopId]) {
-        const location = [invoice.shops?.street_address, invoice.shops?.street_address_line_2, invoice.shops?.city, invoice.shops?.state, invoice.shops?.zip_code].filter(Boolean).join(', ') || 'N/A';
         shopBalancesMap[shopId] = {
           shopName: invoice.shops?.name || 'N/A',
           ownerName: invoice.shops?.owner_name || 'N/A',
           phone: invoice.shops?.phone || 'N/A',
-          location,
+          streetAddress: invoice.shops?.street_address || 'N/A',
+          addressLine2: invoice.shops?.street_address_line_2 || '',
+          city: invoice.shops?.city || 'N/A',
+          state: invoice.shops?.state || 'N/A',
+          zipCode: invoice.shops?.zip_code || 'N/A',
           totalInvoiced: 0, totalPaid: 0, cashPaid: 0, checkPaid: 0,
           invoiceCount: 0, unpaidCount: 0,
         };
@@ -160,7 +164,11 @@ export const exportInvoicesToExcel = async () => {
         'Shop Name': shop.shopName,
         'Owner': shop.ownerName,
         'Phone': shop.phone,
-        'Location': shop.location,
+        'Street Address': shop.streetAddress,
+        'Address Line 2': shop.addressLine2,
+        'City': shop.city,
+        'State': shop.state,
+        'Zip Code': shop.zipCode,
         'Total Invoices': shop.invoiceCount,
         'Unpaid Invoices': shop.unpaidCount,
         'Total Invoiced': shop.totalInvoiced.toFixed(2),
