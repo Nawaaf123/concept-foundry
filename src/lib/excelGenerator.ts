@@ -65,6 +65,8 @@ export const exportInvoicesToExcel = async () => {
       
       const creator = profiles?.find(p => p.id === invoice.created_by);
       const location = [
+        invoice.shops?.street_address,
+        invoice.shops?.street_address_line_2,
         invoice.shops?.city,
         invoice.shops?.state,
         invoice.shops?.zip_code,
