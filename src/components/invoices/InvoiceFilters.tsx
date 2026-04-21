@@ -85,7 +85,7 @@ export const InvoiceFilters = ({
             <Label htmlFor="search">Search</Label>
             <Input
               id="search"
-              placeholder="Invoice # or shop..."
+              placeholder="Invoice #, shop, city, address..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
             />
