@@ -72,6 +72,18 @@ const Invoices = () => {
   const { data: invoices, isLoading, refetch } = useQuery({
     queryKey: ["invoices", searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo],
     queryFn: async () => {
+      // If searching, first find shop IDs that match the query in name/city/state/address
+      let matchingShopIds: string[] | null = null;
+      if (searchQuery) {
+        const { data: matchedShops } = await supabase
+          .from("shops")
+          .select("id")
+          .or(
+            `name.ilike.%${searchQuery}%,city.ilike.%${searchQuery}%,state.ilike.%${searchQuery}%,street_address.ilike.%${searchQuery}%,street_address_line_2.ilike.%${searchQuery}%,zip_code.ilike.%${searchQuery}%`
+          );
+        matchingShopIds = (matchedShops || []).map((s) => s.id);
+      }
+
       let query = supabase
         .from("invoices")
         .select(`
@@ -87,9 +99,14 @@ const Invoices = () => {
           )
         `);
 
-      // Search filter
+      // Search filter: invoice number OR any matching shop
       if (searchQuery) {
-        query = query.or(`invoice_number.ilike.%${searchQuery}%,shops.name.ilike.%${searchQuery}%`);
+        const shopIdsList = matchingShopIds && matchingShopIds.length > 0
+          ? `(${matchingShopIds.join(",")})`
+          : "(00000000-0000-0000-0000-000000000000)";
+        query = query.or(
+          `invoice_number.ilike.%${searchQuery}%,shop_id.in.${shopIdsList}`
+        );
       }
 
       // Status filter
