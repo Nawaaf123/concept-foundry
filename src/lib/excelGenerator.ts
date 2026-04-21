@@ -14,6 +14,7 @@ export const exportInvoicesToExcel = async () => {
           phone,
           email,
           street_address,
+          street_address_line_2,
           city,
           state,
           zip_code
