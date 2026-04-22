@@ -109,6 +109,114 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          subtotal: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          created_by: string
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shop_id: string
+          status: Database["public"]["Enums"]["order_status"]
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shop_id: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shop_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -222,6 +330,62 @@ export type Database = {
         }
         Relationships: []
       }
+      retailer_signup_requests: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          message: string | null
+          phone: string | null
+          requested_shop_name: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shop_id: string | null
+          status: Database["public"]["Enums"]["signup_request_status"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          requested_shop_name: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shop_id?: string | null
+          status?: Database["public"]["Enums"]["signup_request_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          requested_shop_name?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shop_id?: string | null
+          status?: Database["public"]["Enums"]["signup_request_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retailer_signup_requests_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shops: {
         Row: {
           city: string | null
@@ -232,6 +396,7 @@ export type Database = {
           name: string
           owner_name: string | null
           phone: string | null
+          retailer_user_id: string | null
           state: string | null
           street_address: string | null
           street_address_line_2: string | null
@@ -247,6 +412,7 @@ export type Database = {
           name: string
           owner_name?: string | null
           phone?: string | null
+          retailer_user_id?: string | null
           state?: string | null
           street_address?: string | null
           street_address_line_2?: string | null
@@ -262,6 +428,7 @@ export type Database = {
           name?: string
           owner_name?: string | null
           phone?: string | null
+          retailer_user_id?: string | null
           state?: string | null
           street_address?: string | null
           street_address_line_2?: string | null
@@ -326,6 +493,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_retailer_signup: {
+        Args: { p_request_id: string; p_shop_id: string }
+        Returns: undefined
+      }
       generate_invoice_number: { Args: never; Returns: string }
       get_database_size: {
         Args: never
@@ -369,9 +540,11 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "sales" | "srour"
+      app_role: "admin" | "sales" | "srour" | "retailer"
+      order_status: "pending" | "approved" | "rejected" | "converted"
       payment_method: "cash" | "check"
       payment_status: "paid" | "partial" | "unpaid"
+      signup_request_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -499,9 +672,11 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "sales", "srour"],
+      app_role: ["admin", "sales", "srour", "retailer"],
+      order_status: ["pending", "approved", "rejected", "converted"],
       payment_method: ["cash", "check"],
       payment_status: ["paid", "partial", "unpaid"],
+      signup_request_status: ["pending", "approved", "rejected"],
     },
   },
 } as const
