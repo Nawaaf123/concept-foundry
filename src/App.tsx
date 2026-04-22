@@ -17,6 +17,7 @@ const ProductAnalytics = lazy(() => import("./pages/ProductAnalytics"));
 const Shops = lazy(() => import("./pages/Shops"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const Users = lazy(() => import("./pages/Users"));
+const Orders = lazy(() => import("./pages/Orders"));
 const SalesPerformance = lazy(() => import("./pages/SalesPerformance"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -86,6 +87,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Users />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/orders"
+                element={
+                  <ProtectedRoute>
+                    <Orders />
                   </ProtectedRoute>
                 }
               />

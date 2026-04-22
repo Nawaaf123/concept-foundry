@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Package, ShoppingBag, FileText, Users, LayoutDashboard, BarChart3, TrendingUp, Menu, X } from "lucide-react";
+import { LogOut, Package, ShoppingBag, FileText, Users, LayoutDashboard, BarChart3, TrendingUp, Menu, X, ShoppingCart } from "lucide-react";
 import mrFogLogo from "@/assets/mr-fog-logo.jpg";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
     { icon: BarChart3, label: "Analytics", path: "/analytics", adminOnly: true },
     { icon: ShoppingBag, label: "Shops", path: "/shops" },
     { icon: FileText, label: "Invoices", path: "/invoices" },
+    { icon: ShoppingCart, label: "Orders", path: "/orders" },
     { icon: TrendingUp, label: "Sales Performance", path: "/sales-performance", adminOnly: true },
     { icon: Users, label: "Users", path: "/users", adminOnly: true },
   ];
