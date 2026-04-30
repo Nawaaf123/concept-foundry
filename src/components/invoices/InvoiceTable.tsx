@@ -66,16 +66,18 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all payments for all invoices to calculate pending amounts
+  // Fetch all payments for all invoices to calculate pending amounts.
+  // We intentionally fetch all visible payments (RLS already scopes them to the user)
+  // instead of filtering by invoice IDs in the URL — passing hundreds of UUIDs in
+  // an `.in()` clause produces a URL too long for PostgREST and silently returns
+  // no rows, which would make every invoice appear unpaid.
   const { data: allPayments } = useQuery({
-    queryKey: ["all-invoice-payments", invoices.map(inv => inv.id)],
+    queryKey: ["all-invoice-payments"],
     queryFn: async () => {
-      if (!invoices || invoices.length === 0) return [];
-      const invoiceIds = invoices.map(inv => inv.id);
       const { data, error } = await supabase
         .from("payments")
         .select("invoice_id, amount")
-        .in("invoice_id", invoiceIds);
+        .limit(10000);
       if (error) throw error;
       return data || [];
     },
