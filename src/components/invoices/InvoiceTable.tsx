@@ -305,8 +305,13 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
       unpaid: "destructive",
     };
 
+    const className =
+      status === "paid"
+        ? "border-transparent bg-green-600 text-white hover:bg-green-600/80"
+        : "";
+
     return (
-      <Badge variant={variants[status] || "default"}>
+      <Badge variant={variants[status] || "default"} className={className}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
