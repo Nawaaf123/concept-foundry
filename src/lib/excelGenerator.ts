@@ -35,31 +35,35 @@ export const exportInvoicesToExcel = async () => {
       throw new Error('No invoices found to export');
     }
 
-    // Fetch all invoice items for all invoices (paginated to bypass 1000-row limit)
+    // Fetch all invoice items & payments for all invoices.
+    // Chunk invoice IDs to avoid "Bad Request" from overly long URLs,
+    // and paginate within each chunk to bypass the 1000-row limit.
     const invoiceIds = invoices.map(inv => inv.id);
-    const allItems: any[] = [];
+    const ID_CHUNK = 100;
     const PAGE = 1000;
-    for (let offset = 0; ; offset += PAGE) {
-      const { data, error } = await supabase
-        .from('invoice_items')
-        .select('*')
-        .in('invoice_id', invoiceIds)
-        .range(offset, offset + PAGE - 1);
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-      allItems.push(...data);
-      if (data.length < PAGE) break;
-    }
-    const itemsError = null;
-    if (itemsError) throw itemsError;
 
-    // Fetch all payments for all invoices
-    const { data: allPayments, error: paymentsError } = await supabase
-      .from('payments')
-      .select('*')
-      .in('invoice_id', invoiceIds);
+    const fetchAllByInvoiceIds = async (table: 'invoice_items' | 'payments') => {
+      const all: any[] = [];
+      for (let i = 0; i < invoiceIds.length; i += ID_CHUNK) {
+        const chunk = invoiceIds.slice(i, i + ID_CHUNK);
+        for (let offset = 0; ; offset += PAGE) {
+          const { data, error } = await supabase
+            .from(table)
+            .select('*')
+            .in('invoice_id', chunk)
+            .range(offset, offset + PAGE - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          all.push(...data);
+          if (data.length < PAGE) break;
+        }
+      }
+      return all;
+    };
 
-    if (paymentsError) throw paymentsError;
+    const allItems = await fetchAllByInvoiceIds('invoice_items');
+    const allPayments = await fetchAllByInvoiceIds('payments');
+
 
     // Create Invoice Summary Sheet
     const summaryData = invoices.map(invoice => {
