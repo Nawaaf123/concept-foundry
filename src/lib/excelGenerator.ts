@@ -35,13 +35,22 @@ export const exportInvoicesToExcel = async () => {
       throw new Error('No invoices found to export');
     }
 
-    // Fetch all invoice items for all invoices
+    // Fetch all invoice items for all invoices (paginated to bypass 1000-row limit)
     const invoiceIds = invoices.map(inv => inv.id);
-    const { data: allItems, error: itemsError } = await supabase
-      .from('invoice_items')
-      .select('*')
-      .in('invoice_id', invoiceIds);
-
+    const allItems: any[] = [];
+    const PAGE = 1000;
+    for (let offset = 0; ; offset += PAGE) {
+      const { data, error } = await supabase
+        .from('invoice_items')
+        .select('*')
+        .in('invoice_id', invoiceIds)
+        .range(offset, offset + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allItems.push(...data);
+      if (data.length < PAGE) break;
+    }
+    const itemsError = null;
     if (itemsError) throw itemsError;
 
     // Fetch all payments for all invoices
