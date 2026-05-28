@@ -393,6 +393,7 @@ export type Database = {
           created_by: string
           email: string | null
           id: string
+          is_frozen: boolean
           name: string
           owner_name: string | null
           phone: string | null
@@ -409,6 +410,7 @@ export type Database = {
           created_by: string
           email?: string | null
           id?: string
+          is_frozen?: boolean
           name: string
           owner_name?: string | null
           phone?: string | null
@@ -425,6 +427,7 @@ export type Database = {
           created_by?: string
           email?: string | null
           id?: string
+          is_frozen?: boolean
           name?: string
           owner_name?: string | null
           phone?: string | null
