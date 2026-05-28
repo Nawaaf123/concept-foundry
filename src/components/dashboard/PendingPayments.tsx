@@ -21,8 +21,9 @@ export const PendingPayments = ({ userId, isAdmin }: PendingPaymentsProps) => {
           total_amount,
           payment_status,
           created_at,
-          shops (name)
+          shops!inner (name, is_frozen)
         `)
+        .eq("shops.is_frozen", false)
         .in("payment_status", ["unpaid", "partial"])
         .order("created_at", { ascending: false })
         .limit(8);

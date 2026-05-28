@@ -9,7 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Mail, Phone, MapPin, ChevronDown, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Trash2, Mail, Phone, MapPin, ChevronDown, ChevronRight, Snowflake, Sun } from "lucide-react";
 import { ShopInvoices } from "./ShopInvoices";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +38,31 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const freezeMutation = useMutation({
+    mutationFn: async ({ id, is_frozen }: { id: string; is_frozen: boolean }) => {
+      const { error } = await supabase
+        .from("shops")
+        .update({ is_frozen } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["shops"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["top-shops"] });
+      toast({
+        title: "Success",
+        description: vars.is_frozen ? "Shop frozen — removed from reports" : "Shop unfrozen — back in reports",
+      });
+      onRefetch();
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update shop", variant: "destructive" });
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -81,7 +107,7 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
       {/* Mobile Card View */}
       <div className="md:hidden space-y-3">
         {shops.map((shop) => (
-          <Card key={shop.id}>
+          <Card key={shop.id} className={shop.is_frozen ? "opacity-70 border-blue-300/50" : ""}>
             <CardContent className="p-4">
               <div
                 className="flex justify-between items-start mb-2 cursor-pointer"
@@ -94,13 +120,37 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
                     <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   )}
                   <div>
-                    <h3 className="font-semibold text-base">{shop.name}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-base">{shop.name}</h3>
+                      {shop.is_frozen && (
+                        <Badge variant="outline" className="text-xs border-blue-400 text-blue-600">
+                          <Snowflake className="h-3 w-3 mr-1" />
+                          Frozen
+                        </Badge>
+                      )}
+                    </div>
                     {shop.owner_name && (
                       <p className="text-sm text-muted-foreground">{shop.owner_name}</p>
                     )}
                   </div>
                 </div>
                 <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title={shop.is_frozen ? "Unfreeze shop" : "Freeze shop"}
+                      onClick={() => freezeMutation.mutate({ id: shop.id, is_frozen: !shop.is_frozen })}
+                      disabled={freezeMutation.isPending}
+                    >
+                      {shop.is_frozen ? (
+                        <Sun className="h-4 w-4 text-orange-500" />
+                      ) : (
+                        <Snowflake className="h-4 w-4 text-blue-500" />
+                      )}
+                    </Button>
+                  )}
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(shop)}>
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -166,17 +216,23 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
               <>
                 <TableRow
                   key={shop.id}
-                  className="cursor-pointer hover:bg-accent/50"
+                  className={`cursor-pointer hover:bg-accent/50 ${shop.is_frozen ? "opacity-70" : ""}`}
                   onClick={() => setExpandedId(expandedId === shop.id ? null : shop.id)}
                 >
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {expandedId === shop.id ? (
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       ) : (
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       )}
                       {shop.name}
+                      {shop.is_frozen && (
+                        <Badge variant="outline" className="text-xs border-blue-400 text-blue-600">
+                          <Snowflake className="h-3 w-3 mr-1" />
+                          Frozen
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>{shop.owner_name || "-"}</TableCell>
@@ -213,6 +269,21 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title={shop.is_frozen ? "Unfreeze shop" : "Freeze shop"}
+                          onClick={() => freezeMutation.mutate({ id: shop.id, is_frozen: !shop.is_frozen })}
+                          disabled={freezeMutation.isPending}
+                        >
+                          {shop.is_frozen ? (
+                            <Sun className="h-4 w-4 text-orange-500" />
+                          ) : (
+                            <Snowflake className="h-4 w-4 text-blue-500" />
+                          )}
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => onEdit(shop)}>
                         <Edit className="h-4 w-4" />
                       </Button>
