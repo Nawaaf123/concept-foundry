@@ -35,22 +35,23 @@ const Dashboard = () => {
     queryKey: ["dashboard-stats", user?.id, isAdmin],
     queryFn: async () => {
       if (!user?.id) return null;
-
       // Get products count (always show all)
       const { count: productsCount } = await supabase
         .from("products")
         .select("*", { count: "exact", head: true })
         .eq("is_active", true);
 
-      // Get shops count (always show all)
+      // Get shops count (exclude frozen)
       const { count: shopsCount } = await supabase
         .from("shops")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("is_frozen", false);
 
-      // Get invoices count - filtered for sales
+      // Get invoices count - exclude frozen shop invoices, filtered for sales
       let invoicesQuery = supabase
         .from("invoices")
-        .select("*", { count: "exact", head: true });
+        .select("id, shops!inner(is_frozen)", { count: "exact", head: true })
+        .eq("shops.is_frozen", false);
       
       if (!isAdmin) {
         invoicesQuery = invoicesQuery.eq("created_by", user.id);
@@ -58,10 +59,11 @@ const Dashboard = () => {
       
       const { count: invoicesCount } = await invoicesQuery;
 
-      // Get total revenue - filtered for sales
+      // Get total revenue - exclude frozen shops, filtered for sales
       let revenueQuery = supabase
         .from("invoices")
-        .select("total_amount");
+        .select("total_amount, shops!inner(is_frozen)")
+        .eq("shops.is_frozen", false);
       
       if (!isAdmin) {
         revenueQuery = revenueQuery.eq("created_by", user.id);
@@ -71,10 +73,11 @@ const Dashboard = () => {
       
       const totalRevenue = invoices?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
 
-      // Get payment collection rate - filtered for sales
+      // Get payment collection rate - exclude frozen, filtered for sales
       let paymentQuery = supabase
         .from("invoices")
-        .select("payment_status, total_amount");
+        .select("payment_status, total_amount, shops!inner(is_frozen)")
+        .eq("shops.is_frozen", false);
       
       if (!isAdmin) {
         paymentQuery = paymentQuery.eq("created_by", user.id);
@@ -87,12 +90,6 @@ const Dashboard = () => {
         .reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
 
       const collectionRate = totalRevenue > 0 ? (paidAmount / totalRevenue) * 100 : 0;
-
-      return {
-        productsCount: productsCount || 0,
-        shopsCount: shopsCount || 0,
-        invoicesCount: invoicesCount || 0,
-        totalRevenue,
         collectionRate,
       };
     },
