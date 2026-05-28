@@ -216,17 +216,23 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
               <>
                 <TableRow
                   key={shop.id}
-                  className="cursor-pointer hover:bg-accent/50"
+                  className={`cursor-pointer hover:bg-accent/50 ${shop.is_frozen ? "opacity-70" : ""}`}
                   onClick={() => setExpandedId(expandedId === shop.id ? null : shop.id)}
                 >
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {expandedId === shop.id ? (
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       ) : (
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       )}
                       {shop.name}
+                      {shop.is_frozen && (
+                        <Badge variant="outline" className="text-xs border-blue-400 text-blue-600">
+                          <Snowflake className="h-3 w-3 mr-1" />
+                          Frozen
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>{shop.owner_name || "-"}</TableCell>
@@ -263,6 +269,21 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title={shop.is_frozen ? "Unfreeze shop" : "Freeze shop"}
+                          onClick={() => freezeMutation.mutate({ id: shop.id, is_frozen: !shop.is_frozen })}
+                          disabled={freezeMutation.isPending}
+                        >
+                          {shop.is_frozen ? (
+                            <Sun className="h-4 w-4 text-orange-500" />
+                          ) : (
+                            <Snowflake className="h-4 w-4 text-blue-500" />
+                          )}
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => onEdit(shop)}>
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -273,6 +294,16 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
                       )}
                     </div>
                   </TableCell>
+                </TableRow>
+                {expandedId === shop.id && (
+                  <TableRow key={`${shop.id}-invoices`}>
+                    <TableCell colSpan={5} className="bg-muted/30 p-4">
+                      <ShopInvoices shopId={shop.id} shopName={shop.name} />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
+            ))}
                 </TableRow>
                 {expandedId === shop.id && (
                   <TableRow key={`${shop.id}-invoices`}>
