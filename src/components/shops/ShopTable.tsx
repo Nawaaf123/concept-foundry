@@ -304,16 +304,6 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
                 )}
               </>
             ))}
-                </TableRow>
-                {expandedId === shop.id && (
-                  <TableRow key={`${shop.id}-invoices`}>
-                    <TableCell colSpan={5} className="bg-muted/30 p-4">
-                      <ShopInvoices shopId={shop.id} shopName={shop.name} />
-                    </TableCell>
-                  </TableRow>
-                )}
-              </>
-            ))}
           </TableBody>
         </Table>
       </div>
