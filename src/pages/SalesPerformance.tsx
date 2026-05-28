@@ -96,12 +96,12 @@ const SalesPerformance = () => {
         .select("*")
         .in("id", salesUserIds);
 
-      // Get all invoices for these sales users
+      // Get all invoices for these sales users (exclude frozen-shop invoices)
       const { data: invoices } = await supabase
         .from("invoices")
-        .select("*")
+        .select("*, shops!inner(is_frozen)")
+        .eq("shops.is_frozen", false)
         .in("created_by", salesUserIds);
-
       // Get payments within the date range
       const { data: allPayments } = await supabase
         .from("payments")
