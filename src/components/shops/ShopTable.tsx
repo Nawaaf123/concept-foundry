@@ -107,7 +107,7 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
       {/* Mobile Card View */}
       <div className="md:hidden space-y-3">
         {shops.map((shop) => (
-          <Card key={shop.id}>
+          <Card key={shop.id} className={shop.is_frozen ? "opacity-70 border-blue-300/50" : ""}>
             <CardContent className="p-4">
               <div
                 className="flex justify-between items-start mb-2 cursor-pointer"
@@ -120,13 +120,37 @@ export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps)
                     <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   )}
                   <div>
-                    <h3 className="font-semibold text-base">{shop.name}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-base">{shop.name}</h3>
+                      {shop.is_frozen && (
+                        <Badge variant="outline" className="text-xs border-blue-400 text-blue-600">
+                          <Snowflake className="h-3 w-3 mr-1" />
+                          Frozen
+                        </Badge>
+                      )}
+                    </div>
                     {shop.owner_name && (
                       <p className="text-sm text-muted-foreground">{shop.owner_name}</p>
                     )}
                   </div>
                 </div>
                 <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title={shop.is_frozen ? "Unfreeze shop" : "Freeze shop"}
+                      onClick={() => freezeMutation.mutate({ id: shop.id, is_frozen: !shop.is_frozen })}
+                      disabled={freezeMutation.isPending}
+                    >
+                      {shop.is_frozen ? (
+                        <Sun className="h-4 w-4 text-orange-500" />
+                      ) : (
+                        <Snowflake className="h-4 w-4 text-blue-500" />
+                      )}
+                    </Button>
+                  )}
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(shop)}>
                     <Edit className="h-4 w-4" />
                   </Button>
