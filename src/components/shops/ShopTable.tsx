@@ -32,17 +32,37 @@ interface ShopTableProps {
   isAdmin: boolean;
   onRefetch: () => void;
 }
-  shops: any[];
-  onEdit: (shop: any) => void;
-  isAdmin: boolean;
-  onRefetch: () => void;
-}
 
 export const ShopTable = ({ shops, onEdit, isAdmin, onRefetch }: ShopTableProps) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const freezeMutation = useMutation({
+    mutationFn: async ({ id, is_frozen }: { id: string; is_frozen: boolean }) => {
+      const { error } = await supabase
+        .from("shops")
+        .update({ is_frozen } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["shops"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["top-shops"] });
+      toast({
+        title: "Success",
+        description: vars.is_frozen ? "Shop frozen — removed from reports" : "Shop unfrozen — back in reports",
+      });
+      onRefetch();
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update shop", variant: "destructive" });
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
