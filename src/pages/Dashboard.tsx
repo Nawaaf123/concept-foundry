@@ -90,6 +90,12 @@ const Dashboard = () => {
         .reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
 
       const collectionRate = totalRevenue > 0 ? (paidAmount / totalRevenue) * 100 : 0;
+
+      return {
+        productsCount: productsCount || 0,
+        shopsCount: shopsCount || 0,
+        invoicesCount: invoicesCount || 0,
+        totalRevenue,
         collectionRate,
       };
     },
