@@ -18,8 +18,9 @@ export const RecentActivity = ({ userId, isAdmin }: RecentActivityProps) => {
         .from("invoices")
         .select(`
           *,
-          shops (name)
+          shops!inner (name, is_frozen)
         `)
+        .eq("shops.is_frozen", false)
         .order("created_at", { ascending: false })
         .limit(5);
       

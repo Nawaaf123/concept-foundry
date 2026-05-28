@@ -68,7 +68,8 @@ async function fetchAllInvoices(from: Date, to: Date) {
   for (let offset = 0; ; offset += PAGE) {
     const { data, error } = await supabase
       .from("invoices")
-      .select("id, total_amount, discount_amount, payment_status, shop_id, created_at, created_by")
+      .select("id, total_amount, discount_amount, payment_status, shop_id, created_at, created_by, shops!inner(id, is_frozen)")
+      .eq("shops.is_frozen", false)
       .gte("created_at", from.toISOString())
       .lte("created_at", to.toISOString())
       .order("created_at", { ascending: true })
