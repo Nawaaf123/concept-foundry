@@ -9,7 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Mail, Phone, MapPin, ChevronDown, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Trash2, Mail, Phone, MapPin, ChevronDown, ChevronRight, Snowflake, Sun } from "lucide-react";
 import { ShopInvoices } from "./ShopInvoices";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +27,11 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ShopTableProps {
+  shops: any[];
+  onEdit: (shop: any) => void;
+  isAdmin: boolean;
+  onRefetch: () => void;
+}
   shops: any[];
   onEdit: (shop: any) => void;
   isAdmin: boolean;
