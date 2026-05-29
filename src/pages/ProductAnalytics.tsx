@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, startOfYear, subDays, subMonths } from "date-fns";
-import { CalendarIcon, DollarSign, FileText, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
+import { CalendarIcon, Download, DollarSign, FileText, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
+import { toast } from "sonner";
+import { exportAnalyticsToExcel } from "@/lib/analyticsExcelExport";
 import {
   Bar,
   BarChart,
