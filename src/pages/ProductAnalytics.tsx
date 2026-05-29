@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, startOfYear, subDays, subMonths } from "date-fns";
-import { CalendarIcon, DollarSign, FileText, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
+import { CalendarIcon, Download, DollarSign, FileText, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
+import { toast } from "sonner";
+import { exportAnalyticsToExcel } from "@/lib/analyticsExcelExport";
 import {
   Bar,
   BarChart,
@@ -127,6 +129,20 @@ const ProductAnalytics = () => {
   const [presetValue, setPresetValue] = useState("30d");
   const [range, setRange] = useState<DateRange>(() => PRESETS[1].getRange());
   const [customOpen, setCustomOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { filename } = await exportAnalyticsToExcel(range);
+      toast.success(`Downloaded ${filename}`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Failed to export analytics");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handlePreset = (val: string) => {
     setPresetValue(val);
@@ -360,6 +376,10 @@ const ProductAnalytics = () => {
                 />
               </PopoverContent>
             </Popover>
+            <Button onClick={handleExport} disabled={exporting || isLoading} className="gap-2">
+              <Download className="h-4 w-4" />
+              {exporting ? "Exporting..." : "Download Report"}
+            </Button>
           </div>
         </div>
 
