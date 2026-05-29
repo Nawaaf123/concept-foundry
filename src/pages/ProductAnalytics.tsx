@@ -129,6 +129,20 @@ const ProductAnalytics = () => {
   const [presetValue, setPresetValue] = useState("30d");
   const [range, setRange] = useState<DateRange>(() => PRESETS[1].getRange());
   const [customOpen, setCustomOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { filename } = await exportAnalyticsToExcel(range);
+      toast.success(`Downloaded ${filename}`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Failed to export analytics");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handlePreset = (val: string) => {
     setPresetValue(val);
