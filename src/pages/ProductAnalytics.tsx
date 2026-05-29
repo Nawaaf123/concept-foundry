@@ -376,6 +376,10 @@ const ProductAnalytics = () => {
                 />
               </PopoverContent>
             </Popover>
+            <Button onClick={handleExport} disabled={exporting || isLoading} className="gap-2">
+              <Download className="h-4 w-4" />
+              {exporting ? "Exporting..." : "Download Report"}
+            </Button>
           </div>
         </div>
 
