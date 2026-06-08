@@ -248,8 +248,7 @@ export async function exportAnalyticsToExcel(range: DateRange) {
     const k = toLocalDateStr(new Date(payments[i].payment_date));
     if (k < fromKey || k > toKey) payments.splice(i, 1);
   }
-    }
-  }
+
 
   const items = await fetchInvoiceItems(invoices.map((i) => i.id));
 
