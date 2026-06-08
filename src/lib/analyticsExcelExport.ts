@@ -176,8 +176,13 @@ async function fetchInvoiceItems(invoiceIds: string[]) {
 
 // -------- Main export --------
 export async function exportAnalyticsToExcel(range: DateRange) {
-  const fromISO = range.from.toISOString();
-  const toISO = range.to.toISOString();
+  // Normalize to full-day boundaries so the selected end date is inclusive
+  const fromDate = new Date(range.from);
+  fromDate.setHours(0, 0, 0, 0);
+  const toDate = new Date(range.to);
+  toDate.setHours(23, 59, 59, 999);
+  const fromISO = fromDate.toISOString();
+  const toISO = toDate.toISOString();
 
   // Fetch invoices (exclude frozen shops)
   const invoices: any[] = [];
