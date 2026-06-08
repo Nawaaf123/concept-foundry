@@ -119,12 +119,17 @@ const Invoices = () => {
         query = query.eq("shop_id", shopFilter);
       }
 
-      // Date range filter
+      // Date range filter — use local-day boundaries converted to absolute ISO
+      // so the user's selected calendar day matches their timezone, not UTC.
       if (dateFrom) {
-        query = query.gte("created_at", `${dateFrom}T00:00:00`);
+        const [y, m, d] = dateFrom.split("-").map(Number);
+        const fromLocal = new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
+        query = query.gte("created_at", fromLocal.toISOString());
       }
       if (dateTo) {
-        query = query.lte("created_at", `${dateTo}T23:59:59.999`);
+        const [y, m, d] = dateTo.split("-").map(Number);
+        const toLocal = new Date(y, (m || 1) - 1, d || 1, 23, 59, 59, 999);
+        query = query.lte("created_at", toLocal.toISOString());
       }
 
       // Sorting
