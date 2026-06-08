@@ -174,15 +174,27 @@ async function fetchInvoiceItems(invoiceIds: string[]) {
   return all;
 }
 
+// Format a Date as a local YYYY-MM-DD calendar string (no timezone shift).
+const toLocalDateStr = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 // -------- Main export --------
 export async function exportAnalyticsToExcel(range: DateRange) {
-  // Normalize to full-day boundaries so the selected end date is inclusive
-  const fromDate = new Date(range.from);
-  fromDate.setHours(0, 0, 0, 0);
-  const toDate = new Date(range.to);
-  toDate.setHours(23, 59, 59, 999);
+  // Treat the user's selected dates as calendar dates in their LOCAL timezone.
+  // Build full-day boundaries in local time, then convert to absolute ISO
+  // instants for the DB query. Grouping below uses the same local date so
+  // an invoice counted in the range is attributed to the same day shown.
+  const fromDate = new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate(), 0, 0, 0, 0);
+  const toDate = new Date(range.to.getFullYear(), range.to.getMonth(), range.to.getDate(), 23, 59, 59, 999);
   const fromISO = fromDate.toISOString();
   const toISO = toDate.toISOString();
+  const fromKey = toLocalDateStr(fromDate);
+  const toKey = toLocalDateStr(toDate);
+
 
   // Fetch invoices (exclude frozen shops)
   const invoices: any[] = [];
