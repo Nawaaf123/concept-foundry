@@ -244,6 +244,12 @@ export async function exportAnalyticsToExcel(range: DateRange) {
       if (data.length < PAGE) break;
     }
   }
+  for (let i = payments.length - 1; i >= 0; i--) {
+    const k = toLocalDateStr(new Date(payments[i].payment_date));
+    if (k < fromKey || k > toKey) payments.splice(i, 1);
+  }
+    }
+  }
 
   const items = await fetchInvoiceItems(invoices.map((i) => i.id));
 
