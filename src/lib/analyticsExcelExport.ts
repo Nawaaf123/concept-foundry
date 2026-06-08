@@ -216,6 +216,17 @@ export async function exportAnalyticsToExcel(range: DateRange) {
     }
   }
 
+  // Safety net: drop anything whose LOCAL calendar date falls outside the
+  // user's selected range. Postgres compares the timestamptz as an absolute
+  // instant, which can leak in records right at midnight boundaries when the
+  // user's timezone differs from UTC. Filtering by the same local date key we
+  // use for grouping guarantees the totals match the per-day breakdown.
+  for (let i = invoices.length - 1; i >= 0; i--) {
+    const k = toLocalDateStr(new Date(invoices[i].created_at));
+    if (k < fromKey || k > toKey) invoices.splice(i, 1);
+  }
+
+
   // Payments
   const payments: any[] = [];
   {
