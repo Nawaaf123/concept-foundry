@@ -705,6 +705,44 @@ export async function exportAnalyticsToExcel(range: DateRange) {
     { method: "TOTAL", count: payments.length, amount: totalCollected, share: 1 },
   );
 
+  // --- Customers by City (all-time, includes frozen, only shops with ≥1 invoice ever) ---
+  const allShopsRes = await supabase.from("shops").select("id, city");
+  const allShopsList: any[] = allShopsRes.data || [];
+  const invoicedIds = new Set<string>();
+  {
+    const PAGE = 1000;
+    for (let offset = 0; ; offset += PAGE) {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("shop_id")
+        .range(offset, offset + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      data.forEach((r: any) => r.shop_id && invoicedIds.add(r.shop_id));
+      if (data.length < PAGE) break;
+    }
+  }
+  const cityAgg = new Map<string, { city: string; customers: number }>();
+  allShopsList.forEach((s) => {
+    if (!invoicedIds.has(s.id)) return;
+    const city = (s.city && String(s.city).trim()) || "Unknown";
+    const cur = cityAgg.get(city) || { city, customers: 0 };
+    cur.customers += 1;
+    cityAgg.set(city, cur);
+  });
+  const cityRows = Array.from(cityAgg.values()).sort((a, b) => b.customers - a.customers);
+  const totalCityCustomers = cityRows.reduce((s, c) => s + c.customers, 0);
+  const wsCities = buildSheet(
+    "Customers by City (All-Time)",
+    `All shops with at least one invoice — including frozen`,
+    [
+      { header: "City", key: "city", width: 28 },
+      { header: "Customers", key: "customers", width: 14, type: "int" },
+    ],
+    cityRows,
+    { city: "TOTAL", customers: totalCityCustomers },
+  );
+
   // --- Build workbook ---
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
@@ -715,6 +753,7 @@ export async function exportAnalyticsToExcel(range: DateRange) {
   XLSX.utils.book_append_sheet(wb, wsSubSub, "By Sub-Sub-Cat");
   XLSX.utils.book_append_sheet(wb, wsRegion, "By Region");
   XLSX.utils.book_append_sheet(wb, wsState, "By State");
+  XLSX.utils.book_append_sheet(wb, wsCities, "Customers by City");
   XLSX.utils.book_append_sheet(wb, wsDay, "By Day");
   XLSX.utils.book_append_sheet(wb, wsMon, "By Month");
   XLSX.utils.book_append_sheet(wb, wsStaff, "By Staff");
