@@ -192,7 +192,7 @@ const ProductAnalytics = () => {
   const { data: allShopsWithCity = [] } = useQuery({
     queryKey: ["analytics-all-shops-city"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("shops").select("id, name, city, state");
+      const { data, error } = await supabase.from("shops").select("id, name, city, state, street_address, street_address_line_2, zip_code, phone, owner_name, is_frozen");
       if (error) throw error;
       return data || [];
     },
@@ -360,15 +360,18 @@ const ProductAnalytics = () => {
   // Customers by City (all-time, includes frozen, only shops with ≥1 invoice ever)
   const customersByCity = useMemo(() => {
     const invoicedSet = new Set(invoicedShopIds);
-    const map = new Map<string, { city: string; customers: number }>();
+    const map = new Map<string, { city: string; customers: number; shops: any[] }>();
     allShopsWithCity.forEach((s: any) => {
       if (!invoicedSet.has(s.id)) return;
       const city = (s.city && String(s.city).trim()) || "Unknown";
-      const cur = map.get(city) || { city, customers: 0 };
+      const cur = map.get(city) || { city, customers: 0, shops: [] };
       cur.customers += 1;
+      cur.shops.push(s);
       map.set(city, cur);
     });
-    return Array.from(map.values()).sort((a, b) => b.customers - a.customers);
+    const arr = Array.from(map.values());
+    arr.forEach((c) => c.shops.sort((a, b) => String(a.name).localeCompare(String(b.name))));
+    return arr.sort((a, b) => b.customers - a.customers);
   }, [allShopsWithCity, invoicedShopIds]);
 
   const isLoading = loadingInv || loadingPay || loadingItems;
