@@ -357,6 +357,20 @@ const ProductAnalytics = () => {
     return Array.from(map.values());
   }, [invoices]);
 
+  // Customers by City (all-time, includes frozen, only shops with ≥1 invoice ever)
+  const customersByCity = useMemo(() => {
+    const invoicedSet = new Set(invoicedShopIds);
+    const map = new Map<string, { city: string; customers: number }>();
+    allShopsWithCity.forEach((s: any) => {
+      if (!invoicedSet.has(s.id)) return;
+      const city = (s.city && String(s.city).trim()) || "Unknown";
+      const cur = map.get(city) || { city, customers: 0 };
+      cur.customers += 1;
+      map.set(city, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.customers - a.customers);
+  }, [allShopsWithCity, invoicedShopIds]);
+
   const isLoading = loadingInv || loadingPay || loadingItems;
 
   return (
@@ -431,6 +445,7 @@ const ProductAnalytics = () => {
             <TabsTrigger value="shops">Top Shops</TabsTrigger>
             <TabsTrigger value="staff">By Staff</TabsTrigger>
             <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="cities">Customers by City</TabsTrigger>
           </TabsList>
 
           {/* Daily */}
