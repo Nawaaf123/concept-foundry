@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, startOfYear, subDays, subMonths } from "date-fns";
-import { CalendarIcon, Download, DollarSign, FileText, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
+import { CalendarIcon, Download, DollarSign, FileText, MapPin, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
 import { toast } from "sonner";
 import { exportAnalyticsToExcel } from "@/lib/analyticsExcelExport";
 import {
@@ -185,6 +185,36 @@ const ProductAnalytics = () => {
       const { data, error } = await supabase.from("shops").select("id, name");
       if (error) throw error;
       return data || [];
+    },
+  });
+
+  // All shops (including frozen) with city — for Customers by City
+  const { data: allShopsWithCity = [] } = useQuery({
+    queryKey: ["analytics-all-shops-city"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("shops").select("id, name, city, state");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // All invoice shop_ids (all-time) to know which shops are actual customers
+  const { data: invoicedShopIds = [] } = useQuery({
+    queryKey: ["analytics-invoiced-shop-ids"],
+    queryFn: async () => {
+      const PAGE = 1000;
+      const ids = new Set<string>();
+      for (let offset = 0; ; offset += PAGE) {
+        const { data, error } = await supabase
+          .from("invoices")
+          .select("shop_id")
+          .range(offset, offset + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        data.forEach((r: any) => r.shop_id && ids.add(r.shop_id));
+        if (data.length < PAGE) break;
+      }
+      return Array.from(ids);
     },
   });
 
