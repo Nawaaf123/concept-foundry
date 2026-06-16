@@ -739,6 +739,56 @@ const ProductAnalytics = () => {
               </Card>
             </div>
           </TabsContent>
+
+          {/* Customers by City */}
+          <TabsContent value="cities">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Customers by City
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  All shops (including frozen) that have at least one invoice with us — grouped by city.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {customersByCity.length === 0 ? (
+                  <p className="text-muted-foreground">No customer data</p>
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={Math.max(300, customersByCity.length * 28)}>
+                      <BarChart data={customersByCity} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                        <YAxis type="category" dataKey="city" tick={{ fontSize: 11 }} width={140} />
+                        <RTooltip />
+                        <Bar dataKey="customers" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <Table className="mt-4">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>#</TableHead>
+                          <TableHead>City</TableHead>
+                          <TableHead className="text-right">Customers</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {customersByCity.map((c, i) => (
+                          <TableRow key={c.city}>
+                            <TableCell>{i + 1}</TableCell>
+                            <TableCell className="font-medium">{c.city}</TableCell>
+                            <TableCell className="text-right">{c.customers}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
