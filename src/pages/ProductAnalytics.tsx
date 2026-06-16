@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -769,24 +770,60 @@ const ProductAnalytics = () => {
                         <Bar dataKey="customers" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
-                    <Table className="mt-4">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>#</TableHead>
-                          <TableHead>City</TableHead>
-                          <TableHead className="text-right">Customers</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {customersByCity.map((c, i) => (
-                          <TableRow key={c.city}>
-                            <TableCell>{i + 1}</TableCell>
-                            <TableCell className="font-medium">{c.city}</TableCell>
-                            <TableCell className="text-right">{c.customers}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <Accordion type="multiple" className="mt-4">
+                      {customersByCity.map((c, i) => (
+                        <AccordionItem key={c.city} value={c.city}>
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex w-full items-center justify-between pr-4">
+                              <span className="font-medium">
+                                {i + 1}. {c.city}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {c.customers} {c.customers === 1 ? "customer" : "customers"}
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Shop</TableHead>
+                                  <TableHead>Owner</TableHead>
+                                  <TableHead>Phone</TableHead>
+                                  <TableHead>Address</TableHead>
+                                  <TableHead>State</TableHead>
+                                  <TableHead>Zip</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {c.shops.map((s: any) => {
+                                  const addr = [s.street_address, s.street_address_line_2]
+                                    .filter(Boolean)
+                                    .join(", ");
+                                  return (
+                                    <TableRow key={s.id}>
+                                      <TableCell className="font-medium">
+                                        {s.name}
+                                        {s.is_frozen && (
+                                          <Badge variant="outline" className="ml-2 text-xs">
+                                            Frozen
+                                          </Badge>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>{s.owner_name || "—"}</TableCell>
+                                      <TableCell>{s.phone || "—"}</TableCell>
+                                      <TableCell>{addr || "—"}</TableCell>
+                                      <TableCell>{s.state || "—"}</TableCell>
+                                      <TableCell>{s.zip_code || "—"}</TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
                   </>
                 )}
               </CardContent>
