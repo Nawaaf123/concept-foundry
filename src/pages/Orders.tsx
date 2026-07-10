@@ -383,11 +383,24 @@ const Orders = () => {
               </div>
             )}
             {viewOrder?.status === "pending" && (
+              <div className="space-y-2 border-t pt-3">
+                <Label>Fulfill from Warehouse</Label>
+                <Select value={approveWarehouse} onValueChange={(v: "A" | "B") => setApproveWarehouse(v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">Warehouse A</SelectItem>
+                    <SelectItem value="B">Warehouse B</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Stock will be deducted from Warehouse {approveWarehouse}.</p>
+              </div>
+            )}
+            {viewOrder?.status === "pending" && (
               <DialogFooter className="gap-2">
                 <Button variant="destructive" onClick={() => rejectOrder.mutate(viewOrder.id)} disabled={rejectOrder.isPending}>
                   <XCircle className="h-4 w-4 mr-1" /> Reject
                 </Button>
-                <Button onClick={() => approveOrder.mutate(viewOrder)} disabled={approveOrder.isPending}>
+                <Button onClick={() => approveOrder.mutate({ order: viewOrder, warehouse: approveWarehouse })} disabled={approveOrder.isPending}>
                   <CheckCircle2 className="h-4 w-4 mr-1" />
                   {approveOrder.isPending ? "Approving..." : "Approve & Create Invoice"}
                 </Button>
