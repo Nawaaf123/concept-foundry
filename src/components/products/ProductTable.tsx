@@ -267,7 +267,8 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
               <TableHead>Subcategory</TableHead>
               <TableHead>Sub-subcategory</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
+              <TableHead>Stock A</TableHead>
+              <TableHead>Stock B</TableHead>
               <TableHead>Status</TableHead>
               {isAdmin && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
@@ -308,10 +309,10 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
                     `$${product.price.toFixed(2)}`
                   )}
                 </TableCell>
-                <TableCell 
+                <TableCell
                   className={isAdmin ? "cursor-pointer hover:bg-muted/50" : ""}
                   onClick={() => handleCellClick(product.id, 'stock', product.stock_quantity)}
-                  title={isAdmin ? "Click to edit stock" : ""}
+                  title={isAdmin ? "Click to edit Warehouse A stock" : ""}
                 >
                   {editingCell?.id === product.id && editingCell?.field === 'stock' ? (
                     <input
@@ -325,11 +326,31 @@ export const ProductTable = ({ products, onEdit, isAdmin }: ProductTableProps) =
                       className="w-20 px-2 py-1 border rounded"
                     />
                   ) : (
+                    <span className={((product.stock_quantity || 0) + (product.stock_quantity_b || 0)) <= product.low_stock_threshold ? "text-destructive font-semibold" : ""}>
+                      {product.stock_quantity}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell
+                  className={isAdmin ? "cursor-pointer hover:bg-muted/50" : ""}
+                  onClick={() => handleCellClick(product.id, 'stock_b', product.stock_quantity_b ?? 0)}
+                  title={isAdmin ? "Click to edit Warehouse B stock" : ""}
+                >
+                  {editingCell?.id === product.id && editingCell?.field === 'stock_b' ? (
+                    <input
+                      type="number"
+                      min="0"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleCellBlur}
+                      onKeyDown={handleKeyDown}
+                      autoFocus
+                      className="w-20 px-2 py-1 border rounded"
+                    />
+                  ) : (
                     <div className="flex items-center gap-2">
-                      <span className={product.stock_quantity <= product.low_stock_threshold ? "text-destructive font-semibold" : ""}>
-                        {product.stock_quantity}
-                      </span>
-                      {product.stock_quantity <= product.low_stock_threshold && (
+                      <span>{product.stock_quantity_b ?? 0}</span>
+                      {((product.stock_quantity || 0) + (product.stock_quantity_b || 0)) <= product.low_stock_threshold && (
                         <Badge variant="destructive" className="text-xs">Low</Badge>
                       )}
                     </div>
