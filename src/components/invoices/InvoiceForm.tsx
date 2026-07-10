@@ -898,6 +898,31 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           )}
         </div>
 
+        {/* Warehouse selector - only relevant for new invoices */}
+        {!isEditMode && (
+          <div className="space-y-2">
+            <Label htmlFor="warehouse">Fulfill from Warehouse</Label>
+            {canPickWarehouse ? (
+              <Select value={warehouse} onValueChange={(v: "A" | "B") => setWarehouse(v)}>
+                <SelectTrigger id="warehouse">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="A">Warehouse A</SelectItem>
+                  <SelectItem value="B">Warehouse B</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="p-3 border rounded-md bg-muted/40 text-sm">
+                Warehouse <span className="font-semibold">{warehouse}</span> (your assigned warehouse)
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Stock will be deducted from Warehouse {warehouse}.
+            </p>
+          </div>
+        )}
+
         {/* Payment status section - only show for new invoices */}
         {!isEditMode && (
           <>
