@@ -91,7 +91,6 @@ const Orders = () => {
 
   // Approve order → convert to invoice
   const approveOrder = useMutation({
-  const approveOrder = useMutation({
     mutationFn: async ({ order, warehouse }: { order: OrderRow; warehouse: "A" | "B" }) => {
       if (!order.shop || !user) throw new Error("Missing shop or user");
 
