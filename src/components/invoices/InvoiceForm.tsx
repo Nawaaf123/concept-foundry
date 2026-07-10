@@ -369,7 +369,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
             payment_status: paymentStatus,
             notes: notes || null,
             created_by: user?.id,
-          })
+            warehouse: warehouse,
+          } as any)
           .select()
           .single();
 
@@ -425,18 +426,14 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           }
         }
 
-        // Update product stock (only for new invoices)
+        // Deduct product stock from the selected warehouse (only for new invoices)
         for (const item of items) {
-          const product = products?.find(p => p.id === item.product_id);
-          if (product) {
-            const { error: stockError } = await supabase
-              .from("products")
-              .update({ 
-                stock_quantity: product.stock_quantity - item.quantity 
-              })
-              .eq("id", item.product_id);
-            if (stockError) console.error("Stock update error:", stockError);
-          }
+          const { error: stockError } = await supabase.rpc("update_product_stock" as any, {
+            p_product_id: item.product_id,
+            p_quantity: -item.quantity,
+            p_warehouse: warehouse,
+          } as any);
+          if (stockError) console.error("Stock update error:", stockError);
         }
       }
 
