@@ -65,7 +65,7 @@ export type Database = {
       invoices: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
           discount_amount: number | null
           id: string
           invoice_number: string
@@ -78,7 +78,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
           discount_amount?: number | null
           id?: string
           invoice_number: string
@@ -91,7 +91,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           discount_amount?: number | null
           id?: string
           invoice_number?: string
@@ -402,7 +402,7 @@ export type Database = {
         Row: {
           city: string | null
           created_at: string
-          created_by: string
+          created_by: string | null
           email: string | null
           id: string
           is_frozen: boolean
@@ -419,7 +419,7 @@ export type Database = {
         Insert: {
           city?: string | null
           created_at?: string
-          created_by: string
+          created_by?: string | null
           email?: string | null
           id?: string
           is_frozen?: boolean
@@ -436,7 +436,7 @@ export type Database = {
         Update: {
           city?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           email?: string | null
           id?: string
           is_frozen?: boolean
