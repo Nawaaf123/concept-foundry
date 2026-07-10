@@ -45,6 +45,7 @@ const Orders = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [viewOrder, setViewOrder] = useState<OrderRow | null>(null);
+  const [approveWarehouse, setApproveWarehouse] = useState<"A" | "B">("A");
   const [reviewSignup, setReviewSignup] = useState<SignupRequest | null>(null);
   const [selectedShopId, setSelectedShopId] = useState<string>("");
 
