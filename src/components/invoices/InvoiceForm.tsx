@@ -64,6 +64,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [cashAmount, setCashAmount] = useState("");
   const [checkAmount, setCheckAmount] = useState("");
   const [discountAmount, setDiscountAmount] = useState(invoice?.discount_amount?.toString() || "");
+  const [warehouse, setWarehouse] = useState<"A" | "B">((invoice?.warehouse as "A" | "B") || "A");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddShopDialog, setShowAddShopDialog] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -104,6 +105,31 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       return data;
     },
   });
+
+  // Load the current user's assigned warehouse + role
+  const { data: userMeta } = useQuery({
+    queryKey: ["current-user-meta", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const [{ data: profile }, { data: role }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", user!.id).maybeSingle(),
+      ]);
+      return {
+        assigned_warehouse: ((profile as any)?.assigned_warehouse as "A" | "B") || "A",
+        role: role?.role || "sales",
+      };
+    },
+  });
+
+  // Default warehouse to the user's assigned one when creating a new invoice
+  useEffect(() => {
+    if (!invoice?.id && userMeta?.assigned_warehouse) {
+      setWarehouse(userMeta.assigned_warehouse);
+    }
+  }, [userMeta?.assigned_warehouse, invoice?.id]);
+
+  const canPickWarehouse = userMeta?.role === "admin" || userMeta?.role === "srour";
 
   useEffect(() => {
     if (invoice?.id) {
@@ -343,7 +369,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
             payment_status: paymentStatus,
             notes: notes || null,
             created_by: user?.id,
-          })
+            warehouse: warehouse,
+          } as any)
           .select()
           .single();
 
@@ -399,18 +426,14 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           }
         }
 
-        // Update product stock (only for new invoices)
+        // Deduct product stock from the selected warehouse (only for new invoices)
         for (const item of items) {
-          const product = products?.find(p => p.id === item.product_id);
-          if (product) {
-            const { error: stockError } = await supabase
-              .from("products")
-              .update({ 
-                stock_quantity: product.stock_quantity - item.quantity 
-              })
-              .eq("id", item.product_id);
-            if (stockError) console.error("Stock update error:", stockError);
-          }
+          const { error: stockError } = await supabase.rpc("update_product_stock" as any, {
+            p_product_id: item.product_id,
+            p_quantity: -item.quantity,
+            p_warehouse: warehouse,
+          } as any);
+          if (stockError) console.error("Stock update error:", stockError);
         }
       }
 
@@ -874,6 +897,31 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
             </div>
           )}
         </div>
+
+        {/* Warehouse selector - only relevant for new invoices */}
+        {!isEditMode && (
+          <div className="space-y-2">
+            <Label htmlFor="warehouse">Fulfill from Warehouse</Label>
+            {canPickWarehouse ? (
+              <Select value={warehouse} onValueChange={(v: "A" | "B") => setWarehouse(v)}>
+                <SelectTrigger id="warehouse">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="A">Warehouse A</SelectItem>
+                  <SelectItem value="B">Warehouse B</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="p-3 border rounded-md bg-muted/40 text-sm">
+                Warehouse <span className="font-semibold">{warehouse}</span> (your assigned warehouse)
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Stock will be deducted from Warehouse {warehouse}.
+            </p>
+          </div>
+        )}
 
         {/* Payment status section - only show for new invoices */}
         {!isEditMode && (

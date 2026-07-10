@@ -58,6 +58,7 @@ const Users = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any>(null);
   const [newRole, setNewRole] = useState<"admin" | "sales" | "srour">("sales");
+  const [newWarehouse, setNewWarehouse] = useState<"A" | "B">("A");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -154,8 +155,8 @@ const Users = () => {
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "sales" | "srour" }) => {
-      // Check if role exists
+    mutationFn: async ({ userId, role, warehouse }: { userId: string; role: "admin" | "sales" | "srour"; warehouse: "A" | "B" }) => {
+      // Upsert role
       const { data: existingRole } = await supabase
         .from("user_roles")
         .select("*")
@@ -163,34 +164,32 @@ const Users = () => {
         .single();
 
       if (existingRole) {
-        // Update existing role
         const { error } = await supabase
           .from("user_roles")
           .update({ role })
           .eq("user_id", userId);
         if (error) throw error;
       } else {
-        // Insert new role
         const { error } = await supabase
           .from("user_roles")
           .insert({ user_id: userId, role });
         if (error) throw error;
       }
+
+      // Assigned warehouse on profile
+      const { error: whErr } = await supabase
+        .from("profiles")
+        .update({ assigned_warehouse: warehouse } as any)
+        .eq("id", userId);
+      if (whErr) throw whErr;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast({
-        title: "Success",
-        description: "User role updated successfully",
-      });
+      toast({ title: "Success", description: "User updated successfully" });
       setRoleDialogOpen(false);
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update user role",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to update user", variant: "destructive" });
     },
   });
 
@@ -227,6 +226,7 @@ const Users = () => {
   const handleChangeRole = (user: any) => {
     setSelectedUser(user);
     setNewRole(user.role);
+    setNewWarehouse((user.assigned_warehouse as "A" | "B") || "A");
     setRoleDialogOpen(true);
   };
 
@@ -363,6 +363,7 @@ const Users = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Warehouse</TableHead>
                     <TableHead>Joined</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -373,6 +374,9 @@ const Users = () => {
                       <TableCell className="font-medium">{user.full_name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Warehouse {user.assigned_warehouse || "A"}</Badge>
+                      </TableCell>
                       <TableCell>
                         {format(new Date(user.created_at), "MMM d, yyyy")}
                       </TableCell>
@@ -417,7 +421,7 @@ const Users = () => {
       <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change User Role</DialogTitle>
+            <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">
@@ -453,8 +457,20 @@ const Users = () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="warehouse">Assigned Warehouse</Label>
+                <Select value={newWarehouse} onValueChange={(v: "A" | "B") => setNewWarehouse(v)}>
+                  <SelectTrigger id="warehouse">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">Warehouse A</SelectItem>
+                    <SelectItem value="B">Warehouse B</SelectItem>
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">
-                  Admins can manage products, users, and update payment statuses. Sales can create invoices and manage shops.
+                  Invoices created by this user will deduct stock from this warehouse.
                 </p>
               </div>
               <div className="flex justify-end gap-2">
@@ -466,11 +482,12 @@ const Users = () => {
                     updateRoleMutation.mutate({
                       userId: selectedUser.id,
                       role: newRole,
+                      warehouse: newWarehouse,
                     })
                   }
                   disabled={updateRoleMutation.isPending}
                 >
-                  {updateRoleMutation.isPending ? "Updating..." : "Update Role"}
+                  {updateRoleMutation.isPending ? "Updating..." : "Update User"}
                 </Button>
               </div>
             </div>

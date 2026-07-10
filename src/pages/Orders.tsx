@@ -45,6 +45,7 @@ const Orders = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [viewOrder, setViewOrder] = useState<OrderRow | null>(null);
+  const [approveWarehouse, setApproveWarehouse] = useState<"A" | "B">("A");
   const [reviewSignup, setReviewSignup] = useState<SignupRequest | null>(null);
   const [selectedShopId, setSelectedShopId] = useState<string>("");
 
@@ -90,7 +91,7 @@ const Orders = () => {
 
   // Approve order → convert to invoice
   const approveOrder = useMutation({
-    mutationFn: async (order: OrderRow) => {
+    mutationFn: async ({ order, warehouse }: { order: OrderRow; warehouse: "A" | "B" }) => {
       if (!order.shop || !user) throw new Error("Missing shop or user");
 
       // Generate invoice number
@@ -107,7 +108,8 @@ const Orders = () => {
           payment_status: "unpaid",
           created_by: user.id,
           notes: order.notes ?? `Converted from order ${order.id.slice(0, 8)}`,
-        })
+          warehouse,
+        } as any)
         .select()
         .single();
       if (invErr) throw invErr;
@@ -124,10 +126,17 @@ const Orders = () => {
       const { error: itemsErr } = await supabase.from("invoice_items").insert(items);
       if (itemsErr) throw itemsErr;
 
-      // Deduct stock
+      // Deduct stock from the chosen warehouse
       for (const it of order.items) {
-        await supabase.rpc("update_product_stock", { p_product_id: it.product_id, p_quantity: -it.quantity });
+        await supabase.rpc("update_product_stock" as any, {
+          p_product_id: it.product_id,
+          p_quantity: -it.quantity,
+          p_warehouse: warehouse,
+        } as any);
       }
+
+      // Mark order with warehouse
+      await supabase.from("orders").update({ warehouse } as any).eq("id", order.id);
 
       // Mark order converted
       const { error: updErr } = await supabase
@@ -374,11 +383,24 @@ const Orders = () => {
               </div>
             )}
             {viewOrder?.status === "pending" && (
+              <div className="space-y-2 border-t pt-3">
+                <Label>Fulfill from Warehouse</Label>
+                <Select value={approveWarehouse} onValueChange={(v: "A" | "B") => setApproveWarehouse(v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">Warehouse A</SelectItem>
+                    <SelectItem value="B">Warehouse B</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Stock will be deducted from Warehouse {approveWarehouse}.</p>
+              </div>
+            )}
+            {viewOrder?.status === "pending" && (
               <DialogFooter className="gap-2">
                 <Button variant="destructive" onClick={() => rejectOrder.mutate(viewOrder.id)} disabled={rejectOrder.isPending}>
                   <XCircle className="h-4 w-4 mr-1" /> Reject
                 </Button>
-                <Button onClick={() => approveOrder.mutate(viewOrder)} disabled={approveOrder.isPending}>
+                <Button onClick={() => approveOrder.mutate({ order: viewOrder, warehouse: approveWarehouse })} disabled={approveOrder.isPending}>
                   <CheckCircle2 className="h-4 w-4 mr-1" />
                   {approveOrder.isPending ? "Approving..." : "Approve & Create Invoice"}
                 </Button>

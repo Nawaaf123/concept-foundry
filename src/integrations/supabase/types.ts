@@ -74,6 +74,7 @@ export type Database = {
           shop_id: string
           total_amount: number
           updated_at: string
+          warehouse: Database["public"]["Enums"]["warehouse_code"] | null
         }
         Insert: {
           created_at?: string
@@ -86,6 +87,7 @@ export type Database = {
           shop_id: string
           total_amount: number
           updated_at?: string
+          warehouse?: Database["public"]["Enums"]["warehouse_code"] | null
         }
         Update: {
           created_at?: string
@@ -98,6 +100,7 @@ export type Database = {
           shop_id?: string
           total_amount?: number
           updated_at?: string
+          warehouse?: Database["public"]["Enums"]["warehouse_code"] | null
         }
         Relationships: [
           {
@@ -171,6 +174,7 @@ export type Database = {
           status: Database["public"]["Enums"]["order_status"]
           total_amount: number
           updated_at: string
+          warehouse: Database["public"]["Enums"]["warehouse_code"] | null
         }
         Insert: {
           admin_notes?: string | null
@@ -185,6 +189,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
           total_amount?: number
           updated_at?: string
+          warehouse?: Database["public"]["Enums"]["warehouse_code"] | null
         }
         Update: {
           admin_notes?: string | null
@@ -199,6 +204,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
           total_amount?: number
           updated_at?: string
+          warehouse?: Database["public"]["Enums"]["warehouse_code"] | null
         }
         Relationships: [
           {
@@ -272,6 +278,7 @@ export type Database = {
           name: string
           price: number
           stock_quantity: number
+          stock_quantity_b: number
           sub_subcategory: string | null
           subcategory: string | null
           updated_at: string
@@ -286,6 +293,7 @@ export type Database = {
           name: string
           price: number
           stock_quantity?: number
+          stock_quantity_b?: number
           sub_subcategory?: string | null
           subcategory?: string | null
           updated_at?: string
@@ -300,6 +308,7 @@ export type Database = {
           name?: string
           price?: number
           stock_quantity?: number
+          stock_quantity_b?: number
           sub_subcategory?: string | null
           subcategory?: string | null
           updated_at?: string
@@ -308,6 +317,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          assigned_warehouse: Database["public"]["Enums"]["warehouse_code"]
           created_at: string
           email: string
           full_name: string
@@ -315,6 +325,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_warehouse?: Database["public"]["Enums"]["warehouse_code"]
           created_at?: string
           email: string
           full_name: string
@@ -322,6 +333,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_warehouse?: Database["public"]["Enums"]["warehouse_code"]
           created_at?: string
           email?: string
           full_name?: string
@@ -537,10 +549,19 @@ export type Database = {
         }
         Returns: boolean
       }
-      update_product_stock: {
-        Args: { p_product_id: string; p_quantity: number }
-        Returns: undefined
-      }
+      update_product_stock:
+        | {
+            Args: { p_product_id: string; p_quantity: number }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_product_id: string
+              p_quantity: number
+              p_warehouse?: string
+            }
+            Returns: undefined
+          }
     }
     Enums: {
       app_role: "admin" | "sales" | "srour" | "retailer"
@@ -548,6 +569,7 @@ export type Database = {
       payment_method: "cash" | "check"
       payment_status: "paid" | "partial" | "unpaid"
       signup_request_status: "pending" | "approved" | "rejected"
+      warehouse_code: "A" | "B"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -680,6 +702,7 @@ export const Constants = {
       payment_method: ["cash", "check"],
       payment_status: ["paid", "partial", "unpaid"],
       signup_request_status: ["pending", "approved", "rejected"],
+      warehouse_code: ["A", "B"],
     },
   },
 } as const
