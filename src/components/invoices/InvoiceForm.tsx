@@ -64,6 +64,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [cashAmount, setCashAmount] = useState("");
   const [checkAmount, setCheckAmount] = useState("");
   const [discountAmount, setDiscountAmount] = useState(invoice?.discount_amount?.toString() || "");
+  const [warehouse, setWarehouse] = useState<"A" | "B">((invoice?.warehouse as "A" | "B") || "A");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddShopDialog, setShowAddShopDialog] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -104,6 +105,31 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       return data;
     },
   });
+
+  // Load the current user's assigned warehouse + role
+  const { data: userMeta } = useQuery({
+    queryKey: ["current-user-meta", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const [{ data: profile }, { data: role }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", user!.id).maybeSingle(),
+      ]);
+      return {
+        assigned_warehouse: ((profile as any)?.assigned_warehouse as "A" | "B") || "A",
+        role: role?.role || "sales",
+      };
+    },
+  });
+
+  // Default warehouse to the user's assigned one when creating a new invoice
+  useEffect(() => {
+    if (!invoice?.id && userMeta?.assigned_warehouse) {
+      setWarehouse(userMeta.assigned_warehouse);
+    }
+  }, [userMeta?.assigned_warehouse, invoice?.id]);
+
+  const canPickWarehouse = userMeta?.role === "admin" || userMeta?.role === "srour";
 
   useEffect(() => {
     if (invoice?.id) {
