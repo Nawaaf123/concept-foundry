@@ -91,7 +91,8 @@ const Orders = () => {
 
   // Approve order → convert to invoice
   const approveOrder = useMutation({
-    mutationFn: async (order: OrderRow) => {
+  const approveOrder = useMutation({
+    mutationFn: async ({ order, warehouse }: { order: OrderRow; warehouse: "A" | "B" }) => {
       if (!order.shop || !user) throw new Error("Missing shop or user");
 
       // Generate invoice number
@@ -108,7 +109,8 @@ const Orders = () => {
           payment_status: "unpaid",
           created_by: user.id,
           notes: order.notes ?? `Converted from order ${order.id.slice(0, 8)}`,
-        })
+          warehouse,
+        } as any)
         .select()
         .single();
       if (invErr) throw invErr;
@@ -125,10 +127,17 @@ const Orders = () => {
       const { error: itemsErr } = await supabase.from("invoice_items").insert(items);
       if (itemsErr) throw itemsErr;
 
-      // Deduct stock
+      // Deduct stock from the chosen warehouse
       for (const it of order.items) {
-        await supabase.rpc("update_product_stock", { p_product_id: it.product_id, p_quantity: -it.quantity });
+        await supabase.rpc("update_product_stock" as any, {
+          p_product_id: it.product_id,
+          p_quantity: -it.quantity,
+          p_warehouse: warehouse,
+        } as any);
       }
+
+      // Mark order with warehouse
+      await supabase.from("orders").update({ warehouse } as any).eq("id", order.id);
 
       // Mark order converted
       const { error: updErr } = await supabase
