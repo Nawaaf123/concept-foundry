@@ -147,6 +147,12 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
     }
   }, [invoice]);
 
+  // Notify parent dialog so it can lock while we're saving
+  useEffect(() => {
+    onBusyChange?.(isSubmitting);
+  }, [isSubmitting, onBusyChange]);
+
+
   // Get unique categories from products
   const categories = Array.from(
     new Set(products?.map(p => p.category).filter(Boolean) || [])
