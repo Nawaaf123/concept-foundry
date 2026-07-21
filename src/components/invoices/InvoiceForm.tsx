@@ -297,31 +297,26 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
       let invoiceItems: any[];
 
       if (isEditMode) {
-        // UPDATE existing invoice
-        const { data: updatedInvoice, error: invoiceError } = await supabase
-          .from("invoices")
-          .update({
-            shop_id: shopId,
-            total_amount: totalAmount,
-            discount_amount: discount,
-            notes: notes || null,
-          })
-          .eq("id", invoice.id)
-          .select()
-          .single();
+        // Atomic update: RPC does UPDATE + DELETE items + INSERT items in one transaction.
+        // Prevents duplicated items or empty invoices if the request is interrupted.
+        const { error: rpcError } = await supabase.rpc("update_invoice_atomic" as any, {
+          p_invoice_id: invoice.id,
+          p_shop_id: shopId,
+          p_total_amount: totalAmount,
+          p_discount_amount: discount,
+          p_notes: notes || null,
+          p_items: items.map((item) => ({
+            product_id: item.product_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            subtotal: item.subtotal,
+          })),
+        } as any);
 
-        if (invoiceError) throw invoiceError;
-        invoiceData = updatedInvoice;
+        if (rpcError) throw rpcError;
 
-        // Delete existing invoice items and recreate
-        const { error: deleteError } = await supabase
-          .from("invoice_items")
-          .delete()
-          .eq("invoice_id", invoice.id);
-
-        if (deleteError) throw deleteError;
-
-        // Create new invoice items
+        invoiceData = { ...invoice, shop_id: shopId, total_amount: totalAmount, discount_amount: discount, notes };
         invoiceItems = items.map((item) => ({
           invoice_id: invoice.id,
           product_id: item.product_id,
@@ -331,11 +326,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
           subtotal: item.subtotal,
         }));
 
-        const { error: itemsError } = await supabase
-          .from("invoice_items")
-          .insert(invoiceItems);
 
-        if (itemsError) throw itemsError;
 
       } else {
         // CREATE new invoice
