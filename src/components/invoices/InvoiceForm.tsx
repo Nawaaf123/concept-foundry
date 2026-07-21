@@ -424,15 +424,16 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
           }
         }
 
-        // Deduct product stock from the selected warehouse (only for new invoices)
-        for (const item of items) {
-          const { error: stockError } = await supabase.rpc("update_product_stock" as any, {
-            p_product_id: item.product_id,
-            p_quantity: -item.quantity,
-            p_warehouse: warehouse,
-          } as any);
-          if (stockError) console.error("Stock update error:", stockError);
-        }
+        // Deduct product stock from the selected warehouse in a single batch call
+        const { error: stockError } = await supabase.rpc("update_product_stock_batch" as any, {
+          p_items: items.map((item) => ({
+            product_id: item.product_id,
+            quantity: -item.quantity,
+          })),
+          p_warehouse: warehouse,
+        } as any);
+        if (stockError) console.error("Stock update error:", stockError);
+
       }
 
       return { invoiceData, invoiceItems, isEditMode };
