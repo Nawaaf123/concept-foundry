@@ -270,13 +270,45 @@ const Invoices = () => {
             <p className="text-muted-foreground">Loading invoices...</p>
           </div>
         ) : (
-          <InvoiceTable
-            invoices={invoices || []}
-            onEdit={handleEditInvoice}
-            isAdmin={canEditAll}
-            onRefetch={refetch}
-            profiles={profiles || []}
-          />
+          <>
+            <InvoiceTable
+              invoices={invoices || []}
+              onEdit={handleEditInvoice}
+              isAdmin={canEditAll}
+              onRefetch={refetch}
+              profiles={profiles || []}
+            />
+
+            {totalCount > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Showing {page * PAGE_SIZE + 1}
+                  –{Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount} invoices
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {page + 1} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         <InvoiceDialog
