@@ -54,7 +54,7 @@ interface InvoiceItem {
   subtotal: number;
 }
 
-export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) => {
+export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: InvoiceFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
