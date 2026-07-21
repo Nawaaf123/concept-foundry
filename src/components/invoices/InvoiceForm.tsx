@@ -43,6 +43,7 @@ interface InvoiceFormProps {
   invoice?: any;
   onSuccess: () => void;
   onCancel: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 interface InvoiceItem {
