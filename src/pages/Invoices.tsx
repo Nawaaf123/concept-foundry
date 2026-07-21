@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,15 @@ const Invoices = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Reset to first page whenever filters change
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo]);
 
   const { data: shops } = useQuery({
     queryKey: ["shops"],
@@ -69,8 +76,8 @@ const Invoices = () => {
   const isSrour = userRole === "srour";
   const canEditAll = isAdmin || isSrour;
 
-  const { data: invoices, isLoading, refetch } = useQuery({
-    queryKey: ["invoices", searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo],
+  const { data: invoiceData, isLoading, refetch } = useQuery({
+    queryKey: ["invoices", searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo, page],
     queryFn: async () => {
       // If searching, first find shop IDs that match the query in name/city/state/address
       let matchingShopIds: string[] | null = null;
@@ -97,7 +104,7 @@ const Invoices = () => {
             state,
             zip_code
           )
-        `);
+        `, { count: "exact" });
 
       // Search filter: invoice number OR any matching shop
       if (searchQuery) {
@@ -149,11 +156,20 @@ const Invoices = () => {
           break;
       }
 
-      const { data, error } = await query;
+      // Pagination — server-side, avoids downloading thousands of rows at once
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data;
+      return { rows: data || [], count: count ?? 0 };
     },
   });
+
+  const invoices = invoiceData?.rows;
+  const totalCount = invoiceData?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -254,13 +270,45 @@ const Invoices = () => {
             <p className="text-muted-foreground">Loading invoices...</p>
           </div>
         ) : (
-          <InvoiceTable
-            invoices={invoices || []}
-            onEdit={handleEditInvoice}
-            isAdmin={canEditAll}
-            onRefetch={refetch}
-            profiles={profiles || []}
-          />
+          <>
+            <InvoiceTable
+              invoices={invoices || []}
+              onEdit={handleEditInvoice}
+              isAdmin={canEditAll}
+              onRefetch={refetch}
+              profiles={profiles || []}
+            />
+
+            {totalCount > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Showing {page * PAGE_SIZE + 1}
+                  –{Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount} invoices
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {page + 1} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         <InvoiceDialog
