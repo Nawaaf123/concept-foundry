@@ -549,6 +549,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_invoice_atomic: {
+        Args: {
+          p_discount_amount: number
+          p_invoice_id: string
+          p_items: Json
+          p_notes: string
+          p_shop_id: string
+          p_total_amount: number
+        }
+        Returns: string
+      }
       update_product_stock:
         | {
             Args: { p_product_id: string; p_quantity: number }
