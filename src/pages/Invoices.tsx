@@ -23,8 +23,15 @@ const Invoices = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Reset to first page whenever filters change
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo]);
 
   const { data: shops } = useQuery({
     queryKey: ["shops"],
