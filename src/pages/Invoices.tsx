@@ -76,8 +76,8 @@ const Invoices = () => {
   const isSrour = userRole === "srour";
   const canEditAll = isAdmin || isSrour;
 
-  const { data: invoices, isLoading, refetch } = useQuery({
-    queryKey: ["invoices", searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo],
+  const { data: invoiceData, isLoading, refetch } = useQuery({
+    queryKey: ["invoices", searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo, page],
     queryFn: async () => {
       // If searching, first find shop IDs that match the query in name/city/state/address
       let matchingShopIds: string[] | null = null;
@@ -104,7 +104,7 @@ const Invoices = () => {
             state,
             zip_code
           )
-        `);
+        `, { count: "exact" });
 
       // Search filter: invoice number OR any matching shop
       if (searchQuery) {
@@ -156,11 +156,20 @@ const Invoices = () => {
           break;
       }
 
-      const { data, error } = await query;
+      // Pagination — server-side, avoids downloading thousands of rows at once
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data;
+      return { rows: data || [], count: count ?? 0 };
     },
   });
+
+  const invoices = invoiceData?.rows;
+  const totalCount = invoiceData?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const handleClearFilters = () => {
     setSearchQuery("");
