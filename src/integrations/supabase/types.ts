@@ -573,6 +573,10 @@ export type Database = {
             }
             Returns: undefined
           }
+      update_product_stock_batch: {
+        Args: { p_items: Json; p_warehouse?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "sales" | "srour" | "retailer"
