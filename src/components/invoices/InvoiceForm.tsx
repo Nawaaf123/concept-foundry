@@ -424,15 +424,16 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
           }
         }
 
-        // Deduct product stock from the selected warehouse (only for new invoices)
-        for (const item of items) {
-          const { error: stockError } = await supabase.rpc("update_product_stock" as any, {
-            p_product_id: item.product_id,
-            p_quantity: -item.quantity,
-            p_warehouse: warehouse,
-          } as any);
-          if (stockError) console.error("Stock update error:", stockError);
-        }
+        // Deduct product stock from the selected warehouse in a single batch call
+        const { error: stockError } = await supabase.rpc("update_product_stock_batch" as any, {
+          p_items: items.map((item) => ({
+            product_id: item.product_id,
+            quantity: -item.quantity,
+          })),
+          p_warehouse: warehouse,
+        } as any);
+        if (stockError) console.error("Stock update error:", stockError);
+
       }
 
       return { invoiceData, invoiceItems, isEditMode };
@@ -449,92 +450,92 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
         return;
       }
 
-      // Send email if enabled (only for new invoices)
+      // Kick off email in the background so the user isn't blocked by PDF gen + Resend.
+      // The dialog closes immediately; a follow-up toast fires when the email finishes.
       if (sendEmail) {
         const selectedShop = shops?.find(s => s.id === shopId);
         const emailTo = useCustomEmail || !selectedShop?.email ? customEmail : selectedShop?.email;
-        
+
         if (emailTo && emailTo.includes("@")) {
-          try {
-            const cash = parseFloat(cashAmount) || 0;
-            const check = parseFloat(checkAmount) || 0;
-            const totalPaid = cash + check;
-            const remainingAmount = totalAmount - totalPaid;
+          const cash = parseFloat(cashAmount) || 0;
+          const check = parseFloat(checkAmount) || 0;
+          const totalPaid = cash + check;
+          const remainingAmount = totalAmount - totalPaid;
+          const currentPaymentStatus = paymentStatus;
 
-            const doc = generateInvoicePDF(
-              {
-                invoice_number: invoiceData.invoice_number,
-                created_at: invoiceData.created_at,
-                total_amount: invoiceData.total_amount,
-                discount_amount: discount,
-                payment_status: invoiceData.payment_status,
-                notes: invoiceData.notes,
-                shops: selectedShop || { name: "Unknown" },
-                items: invoiceItems.map((item: any) => ({
-                  product_name: item.product_name,
-                  quantity: item.quantity,
-                  unit_price: item.unit_price,
-                  subtotal: item.subtotal,
-                })),
-                payments: paymentStatus !== "unpaid" ? [
-                  ...(cash > 0 ? [{ payment_date: new Date().toISOString(), amount: cash, payment_method: "cash" }] : []),
-                  ...(check > 0 ? [{ payment_date: new Date().toISOString(), amount: check, payment_method: "check" }] : []),
-                ] : [],
-              },
-              totalPaid,
-              remainingAmount
-            );
+          (async () => {
+            try {
+              const doc = generateInvoicePDF(
+                {
+                  invoice_number: invoiceData.invoice_number,
+                  created_at: invoiceData.created_at,
+                  total_amount: invoiceData.total_amount,
+                  discount_amount: discount,
+                  payment_status: invoiceData.payment_status,
+                  notes: invoiceData.notes,
+                  shops: selectedShop || { name: "Unknown" },
+                  items: invoiceItems.map((item: any) => ({
+                    product_name: item.product_name,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    subtotal: item.subtotal,
+                  })),
+                  payments: currentPaymentStatus !== "unpaid" ? [
+                    ...(cash > 0 ? [{ payment_date: new Date().toISOString(), amount: cash, payment_method: "cash" }] : []),
+                    ...(check > 0 ? [{ payment_date: new Date().toISOString(), amount: check, payment_method: "check" }] : []),
+                  ] : [],
+                },
+                totalPaid,
+                remainingAmount
+              );
 
-            const pdfDoc = await doc;
-            const pdfBase64 = pdfDoc.output('datauristring').split(',')[1];
+              const pdfDoc = await doc;
+              const pdfBase64 = pdfDoc.output('datauristring').split(',')[1];
 
-            const { error: emailError } = await supabase.functions.invoke('send-invoice-email', {
-              body: {
-                to: emailTo,
-                invoiceNumber: invoiceData.invoice_number,
-                shopName: selectedShop?.name || "Customer",
-                totalAmount: Number(invoiceData.total_amount),
-                pdfBase64,
-              },
-            });
-
-            if (emailError) {
-              console.error("Email send error:", emailError);
-              toast({
-                title: "Invoice Created",
-                description: `Invoice created but email failed to send: ${emailError.message}`,
-                variant: "default",
+              const { error: emailError } = await supabase.functions.invoke('send-invoice-email', {
+                body: {
+                  to: emailTo,
+                  invoiceNumber: invoiceData.invoice_number,
+                  shopName: selectedShop?.name || "Customer",
+                  totalAmount: Number(invoiceData.total_amount),
+                  pdfBase64,
+                },
               });
-            } else {
+
+              if (emailError) {
+                console.error("Email send error:", emailError);
+                toast({
+                  title: "Email failed",
+                  description: `Invoice ${invoiceData.invoice_number} saved, but email to ${emailTo} failed.`,
+                  variant: "destructive",
+                });
+              } else {
+                toast({
+                  title: "Email sent",
+                  description: `Invoice ${invoiceData.invoice_number} sent to ${emailTo}`,
+                });
+              }
+            } catch (emailErr: any) {
+              console.error("Email error:", emailErr);
               toast({
-                title: "Success",
-                description: `Invoice created and sent to ${emailTo}`,
+                title: "Email failed",
+                description: `Invoice ${invoiceData.invoice_number} saved, but the email could not be sent.`,
+                variant: "destructive",
               });
             }
-          } catch (emailErr: any) {
-            console.error("Email error:", emailErr);
-            toast({
-              title: "Invoice Created",
-              description: "Invoice created but failed to send email",
-              variant: "default",
-            });
-          }
-        } else {
-          toast({
-            title: "Success",
-            description: "Invoice created (no valid email to send to)",
-          });
+          })();
         }
-      } else {
-        toast({
-          title: "Success",
-          description: "Invoice created successfully",
-        });
       }
-      
+
+      toast({
+        title: "Success",
+        description: "Invoice created successfully",
+      });
+
       setIsSubmitting(false);
       onSuccess();
     },
+
     onError: (error: any) => {
       setIsSubmitting(false);
       toast({
