@@ -408,9 +408,10 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
         if (paymentStatus === "paid" || paymentStatus === "partial") {
           const cash = parseFloat(cashAmount) || 0;
           const check = parseFloat(checkAmount) || 0;
+          const credit = parseFloat(creditAmount) || 0;
 
-          const paymentRecords = [];
-          
+          const paymentRecords: any[] = [];
+
           if (cash > 0) {
             paymentRecords.push({
               invoice_id: invoiceData.id,
@@ -425,6 +426,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
               invoice_id: invoiceData.id,
               amount: check,
               payment_method: "check" as const,
+              created_by: user?.id,
+            });
+          }
+
+          if (credit > 0) {
+            paymentRecords.push({
+              invoice_id: invoiceData.id,
+              amount: credit,
+              payment_method: "credit",
               created_by: user?.id,
             });
           }
