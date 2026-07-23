@@ -393,7 +393,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
             shop_id: shopId,
             total_amount: totalAmount,
             discount_amount: discount,
-            payment_status: paymentStatus,
+            payment_status: effectiveStatus,
             notes: notes || null,
             created_by: user?.id,
             warehouse: warehouse,
