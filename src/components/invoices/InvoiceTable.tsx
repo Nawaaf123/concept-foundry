@@ -460,7 +460,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
                   {isAdmin && (
                     <div className="mb-4">
                       <p className="text-xs sm:text-sm text-muted-foreground mb-2">Payment Breakdown</p>
-                      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                      <div className="grid grid-cols-3 gap-2 sm:gap-4">
                         <div className="border rounded-lg p-2 sm:p-4 bg-muted/50">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                             <span className="text-xs sm:text-sm font-medium">Cash</span>
@@ -485,6 +485,20 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
                           <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2 text-blue-600">
                             ${payments
                               .filter(p => p.payment_method === 'check')
+                              .reduce((sum, p) => sum + Number(p.amount), 0)
+                              .toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="border rounded-lg p-2 sm:p-4 bg-muted/50">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                            <span className="text-xs sm:text-sm font-medium">Credit</span>
+                            <Badge variant="outline" className="text-xs w-fit">
+                              {payments.filter(p => p.payment_method === 'credit').length}
+                            </Badge>
+                          </div>
+                          <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2 text-orange-600">
+                            ${payments
+                              .filter(p => p.payment_method === 'credit')
                               .reduce((sum, p) => sum + Number(p.amount), 0)
                               .toFixed(2)}
                           </p>
