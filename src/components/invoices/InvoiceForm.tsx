@@ -959,6 +959,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
                   if (value === "unpaid") {
                     setCashAmount("");
                     setCheckAmount("");
+                    setCreditAmount("");
                   }
                 }} 
                 required
