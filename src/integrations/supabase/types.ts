@@ -581,7 +581,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "sales" | "srour" | "retailer"
       order_status: "pending" | "approved" | "rejected" | "converted"
-      payment_method: "cash" | "check"
+      payment_method: "cash" | "check" | "credit"
       payment_status: "paid" | "partial" | "unpaid"
       signup_request_status: "pending" | "approved" | "rejected"
       warehouse_code: "A" | "B"
@@ -714,7 +714,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "sales", "srour", "retailer"],
       order_status: ["pending", "approved", "rejected", "converted"],
-      payment_method: ["cash", "check"],
+      payment_method: ["cash", "check", "credit"],
       payment_status: ["paid", "partial", "unpaid"],
       signup_request_status: ["pending", "approved", "rejected"],
       warehouse_code: ["A", "B"],

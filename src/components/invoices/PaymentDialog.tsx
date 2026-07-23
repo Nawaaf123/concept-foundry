@@ -38,7 +38,7 @@ export const PaymentDialog = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "check">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "check" | "credit">("cash");
   const [checkNumber, setCheckNumber] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -154,15 +154,21 @@ export const PaymentDialog = ({
 
           <div className="space-y-2">
             <Label htmlFor="method">Payment Method *</Label>
-            <Select value={paymentMethod} onValueChange={(value: "cash" | "check") => setPaymentMethod(value)}>
+            <Select value={paymentMethod} onValueChange={(value: "cash" | "check" | "credit") => setPaymentMethod(value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
                 <SelectItem value="check">Check</SelectItem>
+                <SelectItem value="credit">Credit</SelectItem>
               </SelectContent>
             </Select>
+            {paymentMethod === "credit" && (
+              <p className="text-xs text-muted-foreground">
+                Credit reduces the remaining balance without a cash/check payment.
+              </p>
+            )}
           </div>
 
           {paymentMethod === "check" && (
