@@ -985,7 +985,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
                   )}
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="cash_amount">Cash Amount</Label>
                     <Input
@@ -999,7 +999,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
                       className="h-12"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="check_amount">Check Amount</Label>
                     <Input
@@ -1013,18 +1013,34 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
                       className="h-12"
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="credit_amount" className="flex items-center gap-1">
+                      <Gift className="h-3.5 w-3.5" /> Credit Amount
+                    </Label>
+                    <Input
+                      id="credit_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={creditAmount}
+                      onChange={(e) => setCreditAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="h-12"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-sm font-medium">Total Payment:</span>
+                  <span className="text-sm font-medium">Total Payment (cash + check + credit):</span>
                   <span className="text-lg font-bold text-primary">
-                    ${((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0)).toFixed(2)}
+                    ${((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0) + (parseFloat(creditAmount) || 0)).toFixed(2)}
                   </span>
                 </div>
 
                 {paymentStatus === "partial" && (
                   <p className="text-xs text-muted-foreground">
-                    Remaining balance: ${(totalAmount - ((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0))).toFixed(2)}
+                    Remaining balance: ${(totalAmount - ((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0) + (parseFloat(creditAmount) || 0))).toFixed(2)}
                   </p>
                 )}
               </div>
