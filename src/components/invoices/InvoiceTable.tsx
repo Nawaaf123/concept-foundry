@@ -679,6 +679,22 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
         />
       )}
 
+      {/* Give Credit Dialog */}
+      {selectedInvoice && (
+        <CreditDialog
+          open={creditDialogOpen}
+          onOpenChange={(open) => {
+            setCreditDialogOpen(open);
+            if (!open) {
+              queryClient.invalidateQueries({ queryKey: ["payments"] });
+              onRefetch();
+            }
+          }}
+          invoice={selectedInvoice}
+          remainingAmount={remainingAmount}
+        />
+      )}
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
