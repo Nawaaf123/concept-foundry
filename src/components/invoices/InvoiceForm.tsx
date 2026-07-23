@@ -1091,6 +1091,19 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
             </span>
           </div>
         </div>
+
+        {/* Edit mode: allow giving credit against the existing invoice */}
+        {isEditMode && editRemainingAmount > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowCreditDialog(true)}
+            className="w-full"
+          >
+            <Gift className="h-4 w-4 mr-2" />
+            Give Credit (Remaining ${editRemainingAmount.toFixed(2)})
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
@@ -1101,6 +1114,28 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
           {mutation.isPending || isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Invoice" : "Create Invoice")}
         </Button>
       </div>
+
+      {isEditMode && invoice && (
+        <CreditDialog
+          open={showCreditDialog}
+          onOpenChange={(open) => {
+            setShowCreditDialog(open);
+            if (!open && invoice?.id) {
+              // Refresh remaining balance after credit applied
+              supabase
+                .from("payments")
+                .select("amount")
+                .eq("invoice_id", invoice.id)
+                .then(({ data }) => {
+                  const paid = (data || []).reduce((s, p: any) => s + Number(p.amount), 0);
+                  setEditRemainingAmount(Math.max(0, Number(invoice.total_amount || 0) - paid));
+                });
+            }
+          }}
+          invoice={invoice}
+          remainingAmount={editRemainingAmount}
+        />
+      )}
 
       <Dialog open={showAddShopDialog} onOpenChange={setShowAddShopDialog}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
