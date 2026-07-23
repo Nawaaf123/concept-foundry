@@ -148,6 +148,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
             setItems(data);
           }
         });
+      // Load payments so we know remaining balance for the credit button
+      supabase
+        .from("payments")
+        .select("amount")
+        .eq("invoice_id", invoice.id)
+        .then(({ data }) => {
+          const paid = (data || []).reduce((s, p: any) => s + Number(p.amount), 0);
+          setEditRemainingAmount(Math.max(0, Number(invoice.total_amount || 0) - paid));
+        });
     }
   }, [invoice]);
 
