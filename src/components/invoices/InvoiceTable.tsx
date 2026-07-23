@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { PaymentDialog } from "./PaymentDialog";
+import { CreditDialog } from "./CreditDialog";
 import { generateInvoicePDF, saveInvoicePDF } from "@/lib/pdfGenerator";
 import {
   AlertDialog,
