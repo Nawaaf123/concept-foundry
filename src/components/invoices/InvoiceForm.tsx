@@ -420,7 +420,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
         if (itemsError) throw itemsError;
 
         // Create payment records if paid or partial (only for new invoices)
-        if (paymentStatus === "paid" || paymentStatus === "partial") {
+        if (effectiveStatus === "paid" || effectiveStatus === "partial") {
           const cash = parseFloat(cashAmount) || 0;
           const check = parseFloat(checkAmount) || 0;
           const credit = parseFloat(creditAmount) || 0;
