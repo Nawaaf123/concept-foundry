@@ -157,10 +157,10 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
       setSelectedInvoice(null);
       onRefetch();
     },
-    onError: () => {
+    onError: (err: any) => {
       toast({
         title: "Error",
-        description: "Failed to delete invoice",
+        description: err?.message || "Failed to delete invoice",
         variant: "destructive",
       });
     },
