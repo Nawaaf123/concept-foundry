@@ -415,20 +415,51 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 bg-muted rounded-lg mb-4">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
-                  <p className="text-base sm:text-xl font-bold">${Number(selectedInvoice.total_amount).toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Paid</p>
-                  <p className="text-base sm:text-xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Due</p>
-                  <p className="text-base sm:text-xl font-bold text-orange-600">${remainingAmount.toFixed(2)}</p>
-                </div>
-              </div>
+              {(() => {
+                const discountAmt = Number(selectedInvoice.discount_amount || 0);
+                const creditAmt = (payments || [])
+                  .filter((p: any) => p.payment_method === 'credit')
+                  .reduce((s: number, p: any) => s + Number(p.amount), 0);
+                const subtotal = Number(selectedInvoice.total_amount) + discountAmt;
+                return (
+                  <div className="p-3 sm:p-4 bg-muted rounded-lg mb-4 space-y-3">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                      <div>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
+                        <p className="text-base sm:text-xl font-bold">${Number(selectedInvoice.total_amount).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Paid</p>
+                        <p className="text-base sm:text-xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Due</p>
+                        <p className="text-base sm:text-xl font-bold text-orange-600">${remainingAmount.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    {(discountAmt > 0 || creditAmt > 0) && (
+                      <div className="pt-3 border-t space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Subtotal</span>
+                          <span className="font-medium">${subtotal.toFixed(2)}</span>
+                        </div>
+                        {discountAmt > 0 && (
+                          <div className="flex justify-between text-blue-600">
+                            <span>Discount</span>
+                            <span className="font-medium">- ${discountAmt.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {creditAmt > 0 && (
+                          <div className="flex justify-between text-orange-600">
+                            <span className="flex items-center gap-1"><Gift className="h-3.5 w-3.5" /> Credit Given</span>
+                            <span className="font-medium">${creditAmt.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Items</p>
