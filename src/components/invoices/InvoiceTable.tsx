@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, DollarSign, Download, Trash2, Mail, Loader2 } from "lucide-react";
+import { Eye, Edit, DollarSign, Download, Trash2, Mail, Loader2, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { PaymentDialog } from "./PaymentDialog";
+import { CreditDialog } from "./CreditDialog";
 import { generateInvoicePDF, saveInvoicePDF } from "@/lib/pdfGenerator";
 import {
   AlertDialog,
@@ -55,6 +56,7 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [creditDialogOpen, setCreditDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [distributeDialogOpen, setDistributeDialogOpen] = useState(false);
@@ -580,7 +582,15 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
               )}
 
               {remainingAmount > 0 && (
-                <div className="flex justify-center sm:justify-end gap-2">
+                <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreditDialogOpen(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Gift className="h-4 w-4 mr-2" />
+                    Give Credit
+                  </Button>
                   <Button onClick={() => handleRecordPayment(selectedInvoice)} className="w-full sm:w-auto">
                     <DollarSign className="h-4 w-4 mr-2" />
                     Record Payment
@@ -659,6 +669,22 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
           open={paymentDialogOpen}
           onOpenChange={(open) => {
             setPaymentDialogOpen(open);
+            if (!open) {
+              queryClient.invalidateQueries({ queryKey: ["payments"] });
+              onRefetch();
+            }
+          }}
+          invoice={selectedInvoice}
+          remainingAmount={remainingAmount}
+        />
+      )}
+
+      {/* Give Credit Dialog */}
+      {selectedInvoice && (
+        <CreditDialog
+          open={creditDialogOpen}
+          onOpenChange={(open) => {
+            setCreditDialogOpen(open);
             if (!open) {
               queryClient.invalidateQueries({ queryKey: ["payments"] });
               onRefetch();
