@@ -582,7 +582,15 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
               )}
 
               {remainingAmount > 0 && (
-                <div className="flex justify-center sm:justify-end gap-2">
+                <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreditDialogOpen(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Gift className="h-4 w-4 mr-2" />
+                    Give Credit
+                  </Button>
                   <Button onClick={() => handleRecordPayment(selectedInvoice)} className="w-full sm:w-auto">
                     <DollarSign className="h-4 w-4 mr-2" />
                     Record Payment
