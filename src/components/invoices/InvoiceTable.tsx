@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, DollarSign, Download, Trash2, Mail, Loader2 } from "lucide-react";
+import { Eye, Edit, DollarSign, Download, Trash2, Mail, Loader2, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
