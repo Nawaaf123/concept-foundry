@@ -975,7 +975,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
               </Select>
             </div>
 
-            {(paymentStatus === "paid" || paymentStatus === "partial") && (
+            {true && (
               <div className="p-4 border rounded-lg space-y-4 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-semibold">Payment Details</Label>
