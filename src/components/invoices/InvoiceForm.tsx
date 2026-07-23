@@ -65,6 +65,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [cashAmount, setCashAmount] = useState("");
   const [checkAmount, setCheckAmount] = useState("");
+  const [creditAmount, setCreditAmount] = useState("");
   const [discountAmount, setDiscountAmount] = useState(invoice?.discount_amount?.toString() || "");
   const [warehouse, setWarehouse] = useState<"A" | "B">((invoice?.warehouse as "A" | "B") || "A");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,6 +74,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
   const [sendEmail, setSendEmail] = useState(true);
   const [useCustomEmail, setUseCustomEmail] = useState(false);
   const [customEmail, setCustomEmail] = useState("");
+  const [showCreditDialog, setShowCreditDialog] = useState(false);
+  const [editRemainingAmount, setEditRemainingAmount] = useState(0);
   
   // Quick add product filters
   const [quickAddCategory, setQuickAddCategory] = useState("all");
