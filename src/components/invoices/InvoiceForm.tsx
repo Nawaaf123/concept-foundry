@@ -32,11 +32,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { Plus, Trash2, ChevronsUpDown, Check, MapPin, Mail, Loader2, Minus } from "lucide-react";
+import { Plus, Trash2, ChevronsUpDown, Check, MapPin, Mail, Loader2, Minus, Gift } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateInvoicePDF } from "@/lib/pdfGenerator";
 import { Input } from "@/components/ui/input";
 import { ShopForm } from "@/components/shops/ShopForm";
+import { CreditDialog } from "@/components/invoices/CreditDialog";
 import { cn } from "@/lib/utils";
 
 interface InvoiceFormProps {
