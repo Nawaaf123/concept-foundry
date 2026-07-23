@@ -290,8 +290,23 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
         }
       }
 
+      // Auto-upgrade status if amounts were entered under Unpaid
+      let effectiveStatus: "paid" | "partial" | "unpaid" = paymentStatus;
+      if (!isEditMode && paymentStatus === "unpaid") {
+        const totalPayment =
+          (parseFloat(cashAmount) || 0) +
+          (parseFloat(checkAmount) || 0) +
+          (parseFloat(creditAmount) || 0);
+        if (totalPayment > 0) {
+          const tolerance = 0.01;
+          effectiveStatus =
+            Math.abs(totalPayment - totalAmount) <= tolerance ? "paid" : "partial";
+          setPaymentStatus(effectiveStatus);
+        }
+      }
+
       // Validate payment amounts if paid or partial (only for new invoices)
-      if (!isEditMode && (paymentStatus === "paid" || paymentStatus === "partial")) {
+      if (!isEditMode && (effectiveStatus === "paid" || effectiveStatus === "partial")) {
         const cash = parseFloat(cashAmount) || 0;
         const check = parseFloat(checkAmount) || 0;
         const credit = parseFloat(creditAmount) || 0;
@@ -304,11 +319,11 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
         const tolerance = 0.01;
         const difference = Math.abs(totalPayment - totalAmount);
 
-        if (paymentStatus === "paid" && difference > tolerance) {
+        if (effectiveStatus === "paid" && difference > tolerance) {
           throw new Error(`For paid status, total (cash + check + credit) $${totalPayment.toFixed(2)} must equal invoice total $${totalAmount.toFixed(2)}`);
         }
 
-        if (paymentStatus === "partial" && totalPayment > totalAmount + tolerance) {
+        if (effectiveStatus === "partial" && totalPayment > totalAmount + tolerance) {
           throw new Error(`Total payment ($${totalPayment.toFixed(2)}) cannot exceed invoice total ($${totalAmount.toFixed(2)})`);
         }
       }
@@ -378,7 +393,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
             shop_id: shopId,
             total_amount: totalAmount,
             discount_amount: discount,
-            payment_status: paymentStatus,
+            payment_status: effectiveStatus,
             notes: notes || null,
             created_by: user?.id,
             warehouse: warehouse,
@@ -405,7 +420,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
         if (itemsError) throw itemsError;
 
         // Create payment records if paid or partial (only for new invoices)
-        if (paymentStatus === "paid" || paymentStatus === "partial") {
+        if (effectiveStatus === "paid" || effectiveStatus === "partial") {
           const cash = parseFloat(cashAmount) || 0;
           const check = parseFloat(checkAmount) || 0;
           const credit = parseFloat(creditAmount) || 0;
@@ -959,6 +974,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
                   if (value === "unpaid") {
                     setCashAmount("");
                     setCheckAmount("");
+                    setCreditAmount("");
                   }
                 }} 
                 required
@@ -974,7 +990,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
               </Select>
             </div>
 
-            {(paymentStatus === "paid" || paymentStatus === "partial") && (
+            {true && (
               <div className="p-4 border rounded-lg space-y-4 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-semibold">Payment Details</Label>
