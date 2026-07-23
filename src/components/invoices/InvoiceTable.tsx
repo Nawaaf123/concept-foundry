@@ -137,11 +137,15 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
 
   const deleteMutation = useMutation({
     mutationFn: async (invoiceId: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("invoices")
         .delete()
-        .eq("id", invoiceId);
+        .eq("id", invoiceId)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("You don't have permission to delete this invoice.");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
@@ -153,10 +157,10 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
       setSelectedInvoice(null);
       onRefetch();
     },
-    onError: () => {
+    onError: (err: any) => {
       toast({
         title: "Error",
-        description: "Failed to delete invoice",
+        description: err?.message || "Failed to delete invoice",
         variant: "destructive",
       });
     },
