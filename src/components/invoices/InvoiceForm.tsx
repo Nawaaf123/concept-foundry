@@ -32,11 +32,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { Plus, Trash2, ChevronsUpDown, Check, MapPin, Mail, Loader2, Minus } from "lucide-react";
+import { Plus, Trash2, ChevronsUpDown, Check, MapPin, Mail, Loader2, Minus, Gift } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateInvoicePDF } from "@/lib/pdfGenerator";
 import { Input } from "@/components/ui/input";
 import { ShopForm } from "@/components/shops/ShopForm";
+import { CreditDialog } from "@/components/invoices/CreditDialog";
 import { cn } from "@/lib/utils";
 
 interface InvoiceFormProps {
@@ -64,6 +65,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [cashAmount, setCashAmount] = useState("");
   const [checkAmount, setCheckAmount] = useState("");
+  const [creditAmount, setCreditAmount] = useState("");
   const [discountAmount, setDiscountAmount] = useState(invoice?.discount_amount?.toString() || "");
   const [warehouse, setWarehouse] = useState<"A" | "B">((invoice?.warehouse as "A" | "B") || "A");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,6 +74,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
   const [sendEmail, setSendEmail] = useState(true);
   const [useCustomEmail, setUseCustomEmail] = useState(false);
   const [customEmail, setCustomEmail] = useState("");
+  const [showCreditDialog, setShowCreditDialog] = useState(false);
+  const [editRemainingAmount, setEditRemainingAmount] = useState(0);
   
   // Quick add product filters
   const [quickAddCategory, setQuickAddCategory] = useState("all");
@@ -143,6 +147,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
           if (data) {
             setItems(data);
           }
+        });
+      // Load payments so we know remaining balance for the credit button
+      supabase
+        .from("payments")
+        .select("amount")
+        .eq("invoice_id", invoice.id)
+        .then(({ data }) => {
+          const paid = (data || []).reduce((s, p: any) => s + Number(p.amount), 0);
+          setEditRemainingAmount(Math.max(0, Number(invoice.total_amount || 0) - paid));
         });
     }
   }, [invoice]);
@@ -281,21 +294,22 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
       if (!isEditMode && (paymentStatus === "paid" || paymentStatus === "partial")) {
         const cash = parseFloat(cashAmount) || 0;
         const check = parseFloat(checkAmount) || 0;
-        const totalPayment = cash + check;
+        const credit = parseFloat(creditAmount) || 0;
+        const totalPayment = cash + check + credit;
 
         if (totalPayment === 0) {
-          throw new Error("Please enter payment amounts for cash and/or check");
+          throw new Error("Please enter cash, check, or credit amount");
         }
 
         const tolerance = 0.01;
         const difference = Math.abs(totalPayment - totalAmount);
 
         if (paymentStatus === "paid" && difference > tolerance) {
-          throw new Error(`For paid status, total payment ($${totalPayment.toFixed(2)}) must equal invoice total ($${totalAmount.toFixed(2)})`);
+          throw new Error(`For paid status, total (cash + check + credit) $${totalPayment.toFixed(2)} must equal invoice total $${totalAmount.toFixed(2)}`);
         }
 
         if (paymentStatus === "partial" && totalPayment > totalAmount + tolerance) {
-          throw new Error(`Payment amount ($${totalPayment.toFixed(2)}) cannot exceed invoice total ($${totalAmount.toFixed(2)})`);
+          throw new Error(`Total payment ($${totalPayment.toFixed(2)}) cannot exceed invoice total ($${totalAmount.toFixed(2)})`);
         }
       }
 
@@ -394,9 +408,10 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
         if (paymentStatus === "paid" || paymentStatus === "partial") {
           const cash = parseFloat(cashAmount) || 0;
           const check = parseFloat(checkAmount) || 0;
+          const credit = parseFloat(creditAmount) || 0;
 
-          const paymentRecords = [];
-          
+          const paymentRecords: any[] = [];
+
           if (cash > 0) {
             paymentRecords.push({
               invoice_id: invoiceData.id,
@@ -411,6 +426,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
               invoice_id: invoiceData.id,
               amount: check,
               payment_method: "check" as const,
+              created_by: user?.id,
+            });
+          }
+
+          if (credit > 0) {
+            paymentRecords.push({
+              invoice_id: invoiceData.id,
+              amount: credit,
+              payment_method: "credit",
               created_by: user?.id,
             });
           }
@@ -961,7 +985,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
                   )}
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="cash_amount">Cash Amount</Label>
                     <Input
@@ -975,7 +999,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
                       className="h-12"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="check_amount">Check Amount</Label>
                     <Input
@@ -989,18 +1013,34 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
                       className="h-12"
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="credit_amount" className="flex items-center gap-1">
+                      <Gift className="h-3.5 w-3.5" /> Credit Amount
+                    </Label>
+                    <Input
+                      id="credit_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={creditAmount}
+                      onChange={(e) => setCreditAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="h-12"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-sm font-medium">Total Payment:</span>
+                  <span className="text-sm font-medium">Total Payment (cash + check + credit):</span>
                   <span className="text-lg font-bold text-primary">
-                    ${((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0)).toFixed(2)}
+                    ${((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0) + (parseFloat(creditAmount) || 0)).toFixed(2)}
                   </span>
                 </div>
 
                 {paymentStatus === "partial" && (
                   <p className="text-xs text-muted-foreground">
-                    Remaining balance: ${(totalAmount - ((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0))).toFixed(2)}
+                    Remaining balance: ${(totalAmount - ((parseFloat(cashAmount) || 0) + (parseFloat(checkAmount) || 0) + (parseFloat(creditAmount) || 0))).toFixed(2)}
                   </p>
                 )}
               </div>
@@ -1051,6 +1091,19 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
             </span>
           </div>
         </div>
+
+        {/* Edit mode: allow giving credit against the existing invoice */}
+        {isEditMode && editRemainingAmount > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowCreditDialog(true)}
+            className="w-full"
+          >
+            <Gift className="h-4 w-4 mr-2" />
+            Give Credit (Remaining ${editRemainingAmount.toFixed(2)})
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
@@ -1061,6 +1114,28 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
           {mutation.isPending || isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Invoice" : "Create Invoice")}
         </Button>
       </div>
+
+      {isEditMode && invoice && (
+        <CreditDialog
+          open={showCreditDialog}
+          onOpenChange={(open) => {
+            setShowCreditDialog(open);
+            if (!open && invoice?.id) {
+              // Refresh remaining balance after credit applied
+              supabase
+                .from("payments")
+                .select("amount")
+                .eq("invoice_id", invoice.id)
+                .then(({ data }) => {
+                  const paid = (data || []).reduce((s, p: any) => s + Number(p.amount), 0);
+                  setEditRemainingAmount(Math.max(0, Number(invoice.total_amount || 0) - paid));
+                });
+            }
+          }}
+          invoice={invoice}
+          remainingAmount={editRemainingAmount}
+        />
+      )}
 
       <Dialog open={showAddShopDialog} onOpenChange={setShowAddShopDialog}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
