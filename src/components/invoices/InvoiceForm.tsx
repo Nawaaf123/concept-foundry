@@ -294,21 +294,22 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
       if (!isEditMode && (paymentStatus === "paid" || paymentStatus === "partial")) {
         const cash = parseFloat(cashAmount) || 0;
         const check = parseFloat(checkAmount) || 0;
-        const totalPayment = cash + check;
+        const credit = parseFloat(creditAmount) || 0;
+        const totalPayment = cash + check + credit;
 
         if (totalPayment === 0) {
-          throw new Error("Please enter payment amounts for cash and/or check");
+          throw new Error("Please enter cash, check, or credit amount");
         }
 
         const tolerance = 0.01;
         const difference = Math.abs(totalPayment - totalAmount);
 
         if (paymentStatus === "paid" && difference > tolerance) {
-          throw new Error(`For paid status, total payment ($${totalPayment.toFixed(2)}) must equal invoice total ($${totalAmount.toFixed(2)})`);
+          throw new Error(`For paid status, total (cash + check + credit) $${totalPayment.toFixed(2)} must equal invoice total $${totalAmount.toFixed(2)}`);
         }
 
         if (paymentStatus === "partial" && totalPayment > totalAmount + tolerance) {
-          throw new Error(`Payment amount ($${totalPayment.toFixed(2)}) cannot exceed invoice total ($${totalAmount.toFixed(2)})`);
+          throw new Error(`Total payment ($${totalPayment.toFixed(2)}) cannot exceed invoice total ($${totalAmount.toFixed(2)})`);
         }
       }
 
