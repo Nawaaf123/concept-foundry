@@ -290,6 +290,24 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
         }
       }
 
+      // Auto-upgrade status if amounts were entered under Unpaid
+      if (!isEditMode && paymentStatus === "unpaid") {
+        const totalPayment =
+          (parseFloat(cashAmount) || 0) +
+          (parseFloat(checkAmount) || 0) +
+          (parseFloat(creditAmount) || 0);
+        if (totalPayment > 0) {
+          const tolerance = 0.01;
+          if (Math.abs(totalPayment - totalAmount) <= tolerance) {
+            setPaymentStatus("paid");
+            paymentStatus = "paid" as any;
+          } else {
+            setPaymentStatus("partial");
+            paymentStatus = "partial" as any;
+          }
+        }
+      }
+
       // Validate payment amounts if paid or partial (only for new invoices)
       if (!isEditMode && (paymentStatus === "paid" || paymentStatus === "partial")) {
         const cash = parseFloat(cashAmount) || 0;
