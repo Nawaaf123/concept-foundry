@@ -291,6 +291,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
       }
 
       // Auto-upgrade status if amounts were entered under Unpaid
+      let effectiveStatus: "paid" | "partial" | "unpaid" = paymentStatus;
       if (!isEditMode && paymentStatus === "unpaid") {
         const totalPayment =
           (parseFloat(cashAmount) || 0) +
@@ -298,18 +299,14 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
           (parseFloat(creditAmount) || 0);
         if (totalPayment > 0) {
           const tolerance = 0.01;
-          if (Math.abs(totalPayment - totalAmount) <= tolerance) {
-            setPaymentStatus("paid");
-            paymentStatus = "paid" as any;
-          } else {
-            setPaymentStatus("partial");
-            paymentStatus = "partial" as any;
-          }
+          effectiveStatus =
+            Math.abs(totalPayment - totalAmount) <= tolerance ? "paid" : "partial";
+          setPaymentStatus(effectiveStatus);
         }
       }
 
       // Validate payment amounts if paid or partial (only for new invoices)
-      if (!isEditMode && (paymentStatus === "paid" || paymentStatus === "partial")) {
+      if (!isEditMode && (effectiveStatus === "paid" || effectiveStatus === "partial")) {
         const cash = parseFloat(cashAmount) || 0;
         const check = parseFloat(checkAmount) || 0;
         const credit = parseFloat(creditAmount) || 0;
@@ -322,11 +319,11 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel, onBusyChange }: Invo
         const tolerance = 0.01;
         const difference = Math.abs(totalPayment - totalAmount);
 
-        if (paymentStatus === "paid" && difference > tolerance) {
+        if (effectiveStatus === "paid" && difference > tolerance) {
           throw new Error(`For paid status, total (cash + check + credit) $${totalPayment.toFixed(2)} must equal invoice total $${totalAmount.toFixed(2)}`);
         }
 
-        if (paymentStatus === "partial" && totalPayment > totalAmount + tolerance) {
+        if (effectiveStatus === "partial" && totalPayment > totalAmount + tolerance) {
           throw new Error(`Total payment ($${totalPayment.toFixed(2)}) cannot exceed invoice total ($${totalAmount.toFixed(2)})`);
         }
       }
