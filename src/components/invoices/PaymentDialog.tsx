@@ -38,7 +38,7 @@ export const PaymentDialog = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "check" | "credit">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "check">("cash");
   const [checkNumber, setCheckNumber] = useState("");
   const [notes, setNotes] = useState("");
 
