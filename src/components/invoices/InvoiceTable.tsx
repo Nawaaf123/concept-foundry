@@ -68,23 +68,36 @@ export const InvoiceTable = ({ invoices, onEdit, isAdmin, onRefetch, profiles }:
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all payments for all invoices to calculate pending amounts.
-  // We intentionally fetch all visible payments (RLS already scopes them to the user)
-  // instead of filtering by invoice IDs in the URL — passing hundreds of UUIDs in
-  // an `.in()` clause produces a URL too long for PostgREST and silently returns
-  // no rows, which would make every invoice appear unpaid.
+  // Fetch payments for the invoices currently shown. We chunk the invoice IDs so the
+  // request URL stays short, and page through results so we are never capped by the
+  // 1000-row PostgREST limit (which previously made recent payments look missing).
+  const invoiceIds = (invoices || []).map((inv: any) => inv.id);
   const { data: allPayments } = useQuery({
-    queryKey: ["all-invoice-payments"],
+    queryKey: ["all-invoice-payments", invoiceIds],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payments")
-        .select("invoice_id, amount")
-        .limit(10000);
-      if (error) throw error;
-      return data || [];
+      const results: { invoice_id: string; amount: number }[] = [];
+      const CHUNK = 100;
+      for (let i = 0; i < invoiceIds.length; i += CHUNK) {
+        const chunk = invoiceIds.slice(i, i + CHUNK);
+        let from = 0;
+        const PAGE = 1000;
+        while (true) {
+          const { data, error } = await supabase
+            .from("payments")
+            .select("invoice_id, amount")
+            .in("invoice_id", chunk)
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
+          results.push(...((data || []) as any));
+          if (!data || data.length < PAGE) break;
+          from += PAGE;
+        }
+      }
+      return results;
     },
-    enabled: invoices && invoices.length > 0,
+    enabled: invoiceIds.length > 0,
   });
+
 
   // Calculate pending amount for an invoice
   const getPendingAmount = (invoiceId: string, totalAmount: number) => {
