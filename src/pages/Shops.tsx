@@ -36,22 +36,35 @@ const Shops = () => {
 
   const isAdmin = userRole === "admin";
 
-  const { data: shops, isLoading, refetch } = useQuery({
-    queryKey: ["shops", searchQuery],
-    queryFn: async () =>
-      await fetchAllRows<any>(() => {
-        let query = supabase
-          .from("shops")
-          .select("*")
-          .order("created_at", { ascending: false });
+  const PAGE_SIZE = 50;
 
-        if (searchQuery) {
-          query = query.or(`name.ilike.%${searchQuery}%,owner_name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`);
-        }
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery]);
 
-        return query;
-      }),
+  const { data: shopsResult, isLoading, refetch } = useQuery({
+    queryKey: ["shops", searchQuery, page],
+    queryFn: async () => {
+      let query = supabase
+        .from("shops")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false });
+
+      if (searchQuery) {
+        query = query.or(`name.ilike.%${searchQuery}%,owner_name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`);
+      }
+
+      const from = page * PAGE_SIZE;
+      const { data, error, count } = await query.range(from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data || [], count: count || 0 };
+    },
   });
+
+  const shops = shopsResult?.rows;
+  const totalCount = shopsResult?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
 
 
   const handleAddShop = () => {
