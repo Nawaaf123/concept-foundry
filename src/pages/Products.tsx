@@ -108,29 +108,29 @@ const Products = () => {
 
   const { data: products, isLoading, refetch } = useQuery({
     queryKey: ["products", categoryFilter, subcategoryFilter, subSubcategoryFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
+    queryFn: async () =>
+      await fetchAllRows<any>(() => {
+        let query = supabase
+          .from("products")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (categoryFilter !== "all") {
-        query = query.eq("category", categoryFilter);
-      }
+        if (categoryFilter !== "all") {
+          query = query.eq("category", categoryFilter);
+        }
 
-      if (subcategoryFilter !== "all") {
-        query = query.eq("subcategory", subcategoryFilter);
-      }
+        if (subcategoryFilter !== "all") {
+          query = query.eq("subcategory", subcategoryFilter);
+        }
 
-      if (subSubcategoryFilter !== "all") {
-        query = query.eq("sub_subcategory", subSubcategoryFilter);
-      }
+        if (subSubcategoryFilter !== "all") {
+          query = query.eq("sub_subcategory", subSubcategoryFilter);
+        }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
+        return query;
+      }),
   });
+
 
   const handleAddProduct = () => {
     if (!isAdmin) {
