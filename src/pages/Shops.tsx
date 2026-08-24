@@ -118,13 +118,45 @@ const Shops = () => {
             <p className="text-muted-foreground">Loading shops...</p>
           </div>
         ) : (
-          <ShopTable
-            shops={shops || []}
-            onEdit={handleEditShop}
-            isAdmin={isAdmin}
-            onRefetch={refetch}
-          />
+          <>
+            <ShopTable
+              shops={shops || []}
+              onEdit={handleEditShop}
+              isAdmin={isAdmin}
+              onRefetch={refetch}
+            />
+            {totalCount > 0 && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Showing {page * PAGE_SIZE + 1}–
+                  {Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount} shops
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 0}
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm">
+                    Page {page + 1} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
+
 
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
