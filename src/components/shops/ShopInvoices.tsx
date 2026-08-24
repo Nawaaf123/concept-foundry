@@ -15,31 +15,29 @@ export const ShopInvoices = ({ shopId, shopName }: ShopInvoicesProps) => {
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ["shop-invoices", shopId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("invoices")
-        .select("id, invoice_number, total_amount, payment_status, created_at, discount_amount")
-        .eq("shop_id", shopId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () =>
+      await fetchAllRows<any>(() =>
+        supabase
+          .from("invoices")
+          .select("id, invoice_number, total_amount, payment_status, created_at, discount_amount")
+          .eq("shop_id", shopId)
+          .order("created_at", { ascending: false })
+      ),
   });
 
   const { data: payments } = useQuery({
-    queryKey: ["shop-invoice-payments", shopId],
+    queryKey: ["shop-invoice-payments", shopId, invoices?.length],
     queryFn: async () => {
       if (!invoices?.length) return [];
       const invoiceIds = invoices.map((i) => i.id);
-      const { data, error } = await supabase
-        .from("payments")
-        .select("invoice_id, amount")
-        .in("invoice_id", invoiceIds);
-      if (error) throw error;
-      return data;
+      return await fetchAllByIds<{ invoice_id: string; amount: number }>(
+        invoiceIds,
+        (chunk) => supabase.from("payments").select("invoice_id, amount").in("invoice_id", chunk)
+      );
     },
     enabled: !!invoices?.length,
   });
+
 
   const getPaymentTotal = (invoiceId: string) => {
     return payments?.filter((p) => p.invoice_id === invoiceId).reduce((sum, p) => sum + Number(p.amount), 0) || 0;
