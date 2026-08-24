@@ -37,21 +37,21 @@ const Shops = () => {
 
   const { data: shops, isLoading, refetch } = useQuery({
     queryKey: ["shops", searchQuery],
-    queryFn: async () => {
-      let query = supabase
-        .from("shops")
-        .select("*")
-        .order("created_at", { ascending: false });
+    queryFn: async () =>
+      await fetchAllRows<any>(() => {
+        let query = supabase
+          .from("shops")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (searchQuery) {
-        query = query.or(`name.ilike.%${searchQuery}%,owner_name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`);
-      }
+        if (searchQuery) {
+          query = query.or(`name.ilike.%${searchQuery}%,owner_name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`);
+        }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
+        return query;
+      }),
   });
+
 
   const handleAddShop = () => {
     setEditingShop(null);
