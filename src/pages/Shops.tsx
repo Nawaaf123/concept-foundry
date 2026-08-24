@@ -10,6 +10,7 @@ import { BulkUploadDialog } from "@/components/shops/BulkUploadDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
+import { fetchAllRows } from "@/lib/fetchAll";
 
 const Shops = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
