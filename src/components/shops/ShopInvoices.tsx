@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { FileText, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { fetchAllRows, fetchAllByIds } from "@/lib/fetchAll";
 
 interface ShopInvoicesProps {
   shopId: string;
