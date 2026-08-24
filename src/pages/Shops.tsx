@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,14 @@ import { BulkUploadDialog } from "@/components/shops/BulkUploadDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
-import { fetchAllRows } from "@/lib/fetchAll";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const Shops = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [editingShop, setEditingShop] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(0);
   const { user } = useAuth();
 
   const { data: userRole } = useQuery({
