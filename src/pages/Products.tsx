@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { fetchAllRows } from "@/lib/fetchAll";
 
 const Products = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -43,16 +44,16 @@ const Products = () => {
 
   const { data: allProducts, refetch: refetchAllProducts } = useQuery({
     queryKey: ["allProducts"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("category, subcategory, sub_subcategory")
-        .order("category");
-      
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () =>
+      await fetchAllRows<{ category: string; subcategory: string | null; sub_subcategory: string | null }>(
+        () =>
+          supabase
+            .from("products")
+            .select("category, subcategory, sub_subcategory")
+            .order("category")
+      ),
   });
+
 
   const categories = Array.from(
     new Set(allProducts?.map(p => p.category).filter(Boolean) || [])
@@ -108,29 +109,29 @@ const Products = () => {
 
   const { data: products, isLoading, refetch } = useQuery({
     queryKey: ["products", categoryFilter, subcategoryFilter, subSubcategoryFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
+    queryFn: async () =>
+      await fetchAllRows<any>(() => {
+        let query = supabase
+          .from("products")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (categoryFilter !== "all") {
-        query = query.eq("category", categoryFilter);
-      }
+        if (categoryFilter !== "all") {
+          query = query.eq("category", categoryFilter);
+        }
 
-      if (subcategoryFilter !== "all") {
-        query = query.eq("subcategory", subcategoryFilter);
-      }
+        if (subcategoryFilter !== "all") {
+          query = query.eq("subcategory", subcategoryFilter);
+        }
 
-      if (subSubcategoryFilter !== "all") {
-        query = query.eq("sub_subcategory", subSubcategoryFilter);
-      }
+        if (subSubcategoryFilter !== "all") {
+          query = query.eq("sub_subcategory", subSubcategoryFilter);
+        }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
+        return query;
+      }),
   });
+
 
   const handleAddProduct = () => {
     if (!isAdmin) {
