@@ -21,9 +21,12 @@ export const InvoiceDialog = ({ open, onOpenChange, invoice, onSuccess }: Invoic
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6"
-        onPointerDownOutside={(e) => { if (busy) e.preventDefault(); }}
-        onEscapeKeyDown={(e) => { if (busy) e.preventDefault(); }}
-        onInteractOutside={(e) => { if (busy) e.preventDefault(); }}
+        // Never close on outside clicks or Escape — only Cancel/X buttons.
+        // Outside clicks include taps on dropdown menus (they render in a
+        // portal outside this element), which was wiping in-progress invoices.
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>
