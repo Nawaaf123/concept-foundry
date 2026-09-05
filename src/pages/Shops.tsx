@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShopTable } from "@/components/shops/ShopTable";
 import { ShopForm } from "@/components/shops/ShopForm";
@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { fetchAllRows } from "@/lib/fetchAll";
+import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 const Shops = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -18,7 +21,55 @@ const Shops = () => {
   const [editingShop, setEditingShop] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const allShops = await fetchAllRows<any>(() =>
+        supabase.from("shops").select("*").order("name")
+      );
+      if (allShops.length === 0) {
+        toast({ title: "No shops to export", variant: "destructive" });
+        return;
+      }
+      const data = allShops.map((s) => ({
+        "Shop Name": s.name,
+        "Owner Name": s.owner_name || "",
+        "Email": s.email || "",
+        "Phone": s.phone || "",
+        "Street Address": s.street_address || "",
+        "Address Line 2": s.street_address_line_2 || "",
+        "City": s.city || "",
+        "State": s.state || "",
+        "Zip Code": s.zip_code || "",
+        "Status": s.is_frozen ? "Frozen" : "Active",
+        "Added On": new Date(s.created_at).toLocaleDateString(),
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+      const cols: any[] = [];
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        let maxWidth = 10;
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+          if (cell && cell.v) maxWidth = Math.max(maxWidth, cell.v.toString().length);
+        }
+        cols.push({ wch: Math.min(maxWidth + 2, 40) });
+      }
+      ws["!cols"] = cols;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Shops");
+      XLSX.writeFile(wb, `Shops_${new Date().toISOString().split("T")[0]}.xlsx`);
+      toast({ title: "Export complete", description: `${allShops.length} shops downloaded` });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const { data: userRole } = useQuery({
     queryKey: ["userRole", user?.id],
@@ -93,6 +144,10 @@ const Shops = () => {
             <p className="text-sm md:text-base text-muted-foreground">Manage customer shops</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport} disabled={isExporting} className="flex-1 sm:flex-none">
+              <Download className="mr-2 h-4 w-4" />
+              {isExporting ? "Exporting..." : <><span className="hidden sm:inline">Download </span>Excel</>}
+            </Button>
             <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)} className="flex-1 sm:flex-none">
               <Upload className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">Bulk </span>Upload
