@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShopTable } from "@/components/shops/ShopTable";
 import { ShopForm } from "@/components/shops/ShopForm";
@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { fetchAllRows } from "@/lib/fetchAll";
+import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 const Shops = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
