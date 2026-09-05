@@ -21,7 +21,55 @@ const Shops = () => {
   const [editingShop, setEditingShop] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const allShops = await fetchAllRows<any>(() =>
+        supabase.from("shops").select("*").order("name")
+      );
+      if (allShops.length === 0) {
+        toast({ title: "No shops to export", variant: "destructive" });
+        return;
+      }
+      const data = allShops.map((s) => ({
+        "Shop Name": s.name,
+        "Owner Name": s.owner_name || "",
+        "Email": s.email || "",
+        "Phone": s.phone || "",
+        "Street Address": s.street_address || "",
+        "Address Line 2": s.street_address_line_2 || "",
+        "City": s.city || "",
+        "State": s.state || "",
+        "Zip Code": s.zip_code || "",
+        "Status": s.is_frozen ? "Frozen" : "Active",
+        "Added On": new Date(s.created_at).toLocaleDateString(),
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+      const cols: any[] = [];
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        let maxWidth = 10;
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+          if (cell && cell.v) maxWidth = Math.max(maxWidth, cell.v.toString().length);
+        }
+        cols.push({ wch: Math.min(maxWidth + 2, 40) });
+      }
+      ws["!cols"] = cols;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Shops");
+      XLSX.writeFile(wb, `Shops_${new Date().toISOString().split("T")[0]}.xlsx`);
+      toast({ title: "Export complete", description: `${allShops.length} shops downloaded` });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const { data: userRole } = useQuery({
     queryKey: ["userRole", user?.id],
