@@ -144,6 +144,10 @@ const Shops = () => {
             <p className="text-sm md:text-base text-muted-foreground">Manage customer shops</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport} disabled={isExporting} className="flex-1 sm:flex-none">
+              <Download className="mr-2 h-4 w-4" />
+              {isExporting ? "Exporting..." : <><span className="hidden sm:inline">Download </span>Excel</>}
+            </Button>
             <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)} className="flex-1 sm:flex-none">
               <Upload className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">Bulk </span>Upload
