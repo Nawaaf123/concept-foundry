@@ -334,7 +334,8 @@ const Invoices = () => {
                   </Button>
                 </div>
               </div>
-            )}
+            ))}
+
           </>
         )}
 
