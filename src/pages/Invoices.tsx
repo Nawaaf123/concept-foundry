@@ -156,20 +156,44 @@ const Invoices = () => {
           break;
       }
 
+      // When a specific shop is being searched/filtered, show ALL its invoices
+      // (grouping by shop is misleading if only one page is loaded).
+      const showAll = !!searchQuery || shopFilter !== "all";
+
+      if (showAll) {
+        const CHUNK = 1000;
+        let start = 0;
+        let all: any[] = [];
+        let total = 0;
+        // Page through results so nothing is cut off by row limits
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { data, error, count } = await query.range(start, start + CHUNK - 1);
+          if (error) throw error;
+          total = count ?? total;
+          all = all.concat(data || []);
+          if (!data || data.length < CHUNK) break;
+          start += CHUNK;
+        }
+        return { rows: all, count: total || all.length };
+      }
+
       // Pagination — server-side, avoids downloading thousands of rows at once
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
-      query = query.range(from, to);
 
-      const { data, error, count } = await query;
+      const { data, error, count } = await query.range(from, to);
       if (error) throw error;
       return { rows: data || [], count: count ?? 0 };
     },
   });
 
+
   const invoices = invoiceData?.rows;
   const totalCount = invoiceData?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const isShowingAll = !!searchQuery || shopFilter !== "all";
+
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -279,12 +303,17 @@ const Invoices = () => {
               profiles={profiles || []}
             />
 
-            {totalCount > 0 && (
+            {totalCount > 0 && (isShowingAll ? (
+              <p className="text-sm text-muted-foreground pt-2">
+                Showing all {totalCount} matching invoices
+              </p>
+            ) : (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
                 <p className="text-sm text-muted-foreground">
                   Showing {page * PAGE_SIZE + 1}
                   –{Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount} invoices
                 </p>
+
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -307,7 +336,8 @@ const Invoices = () => {
                   </Button>
                 </div>
               </div>
-            )}
+            ))}
+
           </>
         )}
 
