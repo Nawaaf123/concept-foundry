@@ -156,28 +156,6 @@ const Invoices = () => {
           break;
       }
 
-      // When a specific shop is being searched/filtered, show ALL its invoices
-      // (grouping by shop is misleading if only one page is loaded).
-      const showAll = !!searchQuery || shopFilter !== "all";
-
-      if (showAll) {
-        const CHUNK = 1000;
-        let start = 0;
-        let all: any[] = [];
-        let total = 0;
-        // Page through results so nothing is cut off by row limits
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { data, error, count } = await query.range(start, start + CHUNK - 1);
-          if (error) throw error;
-          total = count ?? total;
-          all = all.concat(data || []);
-          if (!data || data.length < CHUNK) break;
-          start += CHUNK;
-        }
-        return { rows: all, count: total || all.length };
-      }
-
       // Pagination — server-side, avoids downloading thousands of rows at once
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -185,6 +163,7 @@ const Invoices = () => {
       const { data, error, count } = await query.range(from, to);
       if (error) throw error;
       return { rows: data || [], count: count ?? 0 };
+
     },
   });
 
