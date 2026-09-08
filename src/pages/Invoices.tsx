@@ -301,12 +301,17 @@ const Invoices = () => {
               profiles={profiles || []}
             />
 
-            {totalCount > 0 && (
+            {totalCount > 0 && (isShowingAll ? (
+              <p className="text-sm text-muted-foreground pt-2">
+                Showing all {totalCount} matching invoices
+              </p>
+            ) : (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
                 <p className="text-sm text-muted-foreground">
                   Showing {page * PAGE_SIZE + 1}
                   –{Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount} invoices
                 </p>
+
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
