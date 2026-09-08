@@ -192,6 +192,8 @@ const Invoices = () => {
   const invoices = invoiceData?.rows;
   const totalCount = invoiceData?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const isShowingAll = !!searchQuery || shopFilter !== "all";
+
 
   const handleClearFilters = () => {
     setSearchQuery("");
